@@ -1,0 +1,25 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Bognabot</title>
+
+    @RenderSection("Head", required: false)
+</head>
+
+<body>
+    <div id="main">
+        @RenderBody()
+    </div>
+    
+    <script src="js/layout.js"></script>
+    <script language="javascript">
+        var layoutVm = new bognabot.LayoutViewModel({
+        });
+    </script>
+
+    @RenderSection("Scripts", false)
+
+</body>
+
+</html>
