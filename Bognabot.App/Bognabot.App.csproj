@@ -13,7 +13,6 @@
   <ItemGroup>
     <Folder Include="Resources\Scripts\Controllers\" />
     <Folder Include="wwwroot\" />
-    <Folder Include="wwwroot\js\" />
   </ItemGroup>
   <ItemGroup>
     <DotNetCliToolReference Include="ElectronNET.CLI" Version="0.0.9" />

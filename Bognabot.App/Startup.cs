@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Bognabot.App.Hubs;
 using Bognabot.Bitmex;
 using ElectronNET.API;
 using ElectronNET.API.Entities;
@@ -24,23 +25,21 @@ namespace Bognabot.App
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<CookiePolicyOptions>(options =>
             {
-                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
                 options.CheckConsentNeeded = context => true;
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddSignalR();
 
             services.AddSingleton<BitmexService>();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             if (env.IsDevelopment())
@@ -63,9 +62,15 @@ namespace Bognabot.App
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
 
-            Task.Run(() => app.ApplicationServices.GetService<BitmexService>().StartAsync());
+            app.UseSignalR(routes =>
+            {
+                routes.MapHub<StreamHub>("/streamhub");
+            });
 
-            //Task.Run(async () => await ElectronBootstrap.Init());
+#if !DEBUG
+            Task.Run(ElectronBootstrap.Init);
+#endif
+            Task.Run(app.ApplicationServices.GetService<BitmexService>().StartAsync);
         }
     }
 }
