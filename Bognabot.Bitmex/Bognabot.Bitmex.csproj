@@ -5,4 +5,10 @@
     <AssemblyName>Bognabot.Bitmex</AssemblyName>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="7.0.1" />
+    <PackageReference Include="Bitmex.Client.Websocket" Version="1.0.25" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+  </ItemGroup>
+
 </Project>

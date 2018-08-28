@@ -8,19 +8,23 @@ namespace Bognabot.Console
     {
         static void Main(string[] args)
         {
-            var bs = new BitmexService();
+            var logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
 
-            Task.Run(async () => await bs.StartAsync());
-
-            bs.OnPriceUpdate += BsOnOnPriceUpdate;
+            Task.Run(async () => await new App().Run());
 
             System.Console.Read();
         }
+    }
 
-        private static void BsOnOnPriceUpdate(double obj)
+    public class App
+    {
+        public async Task Run()
         {
-            
+            var bs = new BitmexService();
 
+            await bs.StartAsync();
+
+            System.Console.WriteLine("MOOOP");
         }
     }
 }

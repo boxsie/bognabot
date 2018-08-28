@@ -8,6 +8,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using NLog.Web;
 
 namespace Bognabot.App
 {
@@ -18,11 +19,32 @@ namespace Bognabot.App
             BuildWebHost(args).Run();
         }
         
+        //public static IWebHost BuildWebHost(string[] args)
+        //{
+        //    return WebHost.CreateDefaultBuilder(args)
+        //        .UseElectron(args)
+        //        .UseStartup<Startup>()
+        //        .ConfigureLogging(logging =>
+        //        {
+        //            logging.ClearProviders();
+        //            logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+        //        })
+        //        .UseNLog()
+        //        .Build();
+        //}
+
         public static IWebHost BuildWebHost(string[] args)
         {
             return WebHost.CreateDefaultBuilder(args)
-                .UseElectron(args)
+                .UseKestrel()
+                .UseUrls("http://localhost:5000")
                 .UseStartup<Startup>()
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                })
+                .UseNLog()
                 .Build();
         }
     }
