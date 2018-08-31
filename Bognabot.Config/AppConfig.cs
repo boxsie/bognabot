@@ -42,6 +42,9 @@ namespace Bognabot.Config
         {
             var appDataPath = $"{hostingEnvironment.ContentRootPath}/App_Data/";
 
+            if (!Directory.Exists(appDataPath))
+                Directory.CreateDirectory(appDataPath);
+
             General = GetConfig<GeneralApp, GeneralUser>(provider);
             Storage = GetConfig<StorageApp, StorageUser>(provider);
             Api = GetConfig<ApiApp, ApiUser>(provider);
