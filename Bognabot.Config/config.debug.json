@@ -1,9 +1,14 @@
 ﻿{
   "General": {
-    "Filename": "config.json",
+    "Filename": "general.json",
     "AppName": "Bognabot"
   },
   "Storage": {
     "Filename": "storage.json"
-  }
+  },
+  "Api": {
+    "Filename": "api.json",
+    "BitmexWsUrl": "wss://testnet.bitmex.com/realtime",
+    "BitmexRestUrl": "https://testnet.bitmex.com/api/v1"
+  } 
 }

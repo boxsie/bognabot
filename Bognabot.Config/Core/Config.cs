@@ -27,6 +27,25 @@ namespace Bognabot.Config.Core
                 {
                     User = new TY();
                     User.SetDefault();
+
+                    await js.WriteAsync(filePath, User);
+                }
+            }
+        }
+
+        public async Task LoadEncryptedUserSettingsAsync(string appDataPath, string key)
+        {
+            var filePath = StorageUtils.PathCombine(appDataPath, App.Filename);
+
+            using (var js = new EncryptedJsonStore<TY>(key))
+            {
+                if (File.Exists(filePath))
+                    User = await js.ReadAsync(filePath);
+                else
+                {
+                    User = new TY();
+                    User.SetDefault();
+
                     await js.WriteAsync(filePath, User);
                 }
             }

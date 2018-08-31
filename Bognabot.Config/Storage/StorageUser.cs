@@ -8,11 +8,6 @@ namespace Bognabot.Config.Storage
     public class StorageUser : UserData
     {
         public string UserDataPath { get; set; }
-
-        public StorageUser()
-        {
-            UserDataPath = GetDefaultUserDataPath();
-        }
         
         public override void SetDefault()
         {

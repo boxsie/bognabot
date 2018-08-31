@@ -5,18 +5,20 @@ using Newtonsoft.Json;
 
 namespace Bognabot.Storage.Stores
 {
-    public class JsonStore<T> : IStorageIO<T>, IDisposable
+    public class EncryptedJsonStore<T> : IStorageIO<T>, IDisposable
     {
+        private readonly string _key;
         private readonly JsonSerializerSettings _settings;
-
-        public JsonStore(JsonSerializerSettings settings = null)
+        
+        public EncryptedJsonStore(string key, JsonSerializerSettings settings = null)
         {
+            _key = key;
             _settings = settings ?? StorageUtils.GetDefaultSerialiserSettings();
         }
 
         public async Task WriteAsync(string filePath, T content)
         {
-            using (var ts = new TextStore())
+            using (var ts = new EncryptedTextStore(_key))
             {
                 var json = JsonConvert.SerializeObject(content, _settings);
 
@@ -26,7 +28,7 @@ namespace Bognabot.Storage.Stores
 
         public async Task<T> ReadAsync(string filePath)
         {
-            using (var ts = new TextStore())
+            using (var ts = new EncryptedTextStore(_key))
             {
                 var json = await ts.ReadAsync(filePath);
 
