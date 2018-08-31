@@ -11,6 +11,8 @@ namespace Bognabot.Storage.Core
 {
     public static class StorageUtils
     {
+        private const string EncryptKeyBase = "E546C8DF278CD5931069B522E695D4F2";
+
         public static string PathCombine(string first, string second, bool trailing = false)
         {
             var pathSeperator = Path.DirectorySeparatorChar;
@@ -30,6 +32,8 @@ namespace Bognabot.Storage.Core
 
         public static async Task<string> EncryptTextAsync(string text, string key)
         {
+            key = PadKey(key);
+
             var keyBytes = Encoding.UTF8.GetBytes(key);
 
             using (var aesAlg = Aes.Create())
@@ -64,6 +68,8 @@ namespace Bognabot.Storage.Core
 
         public static async Task<string> DecryptTextAsync(string encryptedText, string key)
         {
+            key = PadKey(key);
+
             var fullCipher = Convert.FromBase64String(encryptedText);
 
             var iv = new byte[16];
@@ -93,6 +99,18 @@ namespace Bognabot.Storage.Core
                     }
                 }
             }
+        }
+
+        private static string PadKey(string key)
+        {
+            const int bitLen = 32;
+
+            if (key.Length < bitLen)
+                key = $"{key}{EncryptKeyBase.Substring(0, bitLen - key.Length)}";
+            else if (key.Length > bitLen)
+                key = key.Substring(0, bitLen);
+
+            return key;
         }
     }
 }

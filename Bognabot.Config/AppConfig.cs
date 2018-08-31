@@ -48,7 +48,7 @@ namespace Bognabot.Config
 
             await Storage.LoadUserSettingsAsync(appDataPath);
             await General.LoadUserSettingsAsync(appDataPath);
-            await Api.LoadEncryptedUserSettingsAsync(appDataPath, "MOOP");
+            await Api.LoadEncryptedUserSettingsAsync(appDataPath, "moop");
         }
 
         private static Config<T, TY> GetConfig<T, TY>(IServiceProvider provider) where T : AppData, new() where TY : UserData, new()
