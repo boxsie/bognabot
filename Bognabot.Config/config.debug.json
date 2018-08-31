@@ -1,0 +1,9 @@
+﻿{
+  "General": {
+    "Filename": "config.json",
+    "AppName": "Bognabot"
+  },
+  "Storage": {
+    "Filename": "storage.json"
+  }
+}

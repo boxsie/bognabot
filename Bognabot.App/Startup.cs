@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bognabot.App.Hubs;
 using Bognabot.Bitmex;
+using Bognabot.Config;
+using Bognabot.Config.Core;
 using ElectronNET.API;
 using ElectronNET.API.Entities;
 using Microsoft.AspNetCore.Builder;
@@ -27,12 +29,7 @@ namespace Bognabot.App
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<CookiePolicyOptions>(options =>
-            {
-                options.CheckConsentNeeded = context => true;
-                options.MinimumSameSitePolicy = SameSiteMode.None;
-            });
-
+            var config = AppConfig.BuildConfig(services);
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddSignalR();
@@ -40,7 +37,7 @@ namespace Bognabot.App
             services.AddSingleton<BitmexService>();
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IServiceProvider serviceProvider)
         {
             if (env.IsDevelopment())
             {
@@ -67,10 +64,17 @@ namespace Bognabot.App
                 routes.MapHub<StreamHub>("/streamhub");
             });
 
+            ConfigureApp(app, env, serviceProvider);
+        }
+
+        private static async void ConfigureApp(IApplicationBuilder app, IHostingEnvironment env, IServiceProvider serviceProvider)
+        {
+            await AppConfig.AttachConfig(env, serviceProvider);
+
 #if !DEBUG
-            Task.Run(ElectronBootstrap.Init);
+            await ElectronBootstrap.Init;
 #endif
-            Task.Run(app.ApplicationServices.GetService<BitmexService>().StartAsync);
+            await app.ApplicationServices.GetService<BitmexService>().StartAsync();
         }
     }
 }

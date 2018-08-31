@@ -5,11 +5,17 @@ VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.App", "Bognabot.App\Bognabot.App.csproj", "{F75CABAE-5D96-4032-9DAA-FA91157C13DE}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{01C8FF23-C65B-48C3-9AC8-890B9972C8A9}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Console", "Bognabot.Console\Bognabot.Console.csproj", "{E1B20AFD-6A03-4413-9245-CAE1B82F12CB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Bitmex", "Bognabot.Bitmex\Bognabot.Bitmex.csproj", "{0068CD82-153C-4B79-B908-A0321326A524}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Storage", "Bognabot.Storage\Bognabot.Storage.csproj", "{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Domain", "Bognabot.Domain\Bognabot.Domain.csproj", "{22EBE9B5-C3E2-4480-AFD8-78EAC8451201}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Data", "Bognabot.Data\Bognabot.Data.csproj", "{0854D5EF-C027-4B46-84C9-CB5F513B58D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Config", "Bognabot.Config\Bognabot.Config.csproj", "{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,6 +35,22 @@ Global
 		{0068CD82-153C-4B79-B908-A0321326A524}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0068CD82-153C-4B79-B908-A0321326A524}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0068CD82-153C-4B79-B908-A0321326A524}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22EBE9B5-C3E2-4480-AFD8-78EAC8451201}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22EBE9B5-C3E2-4480-AFD8-78EAC8451201}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22EBE9B5-C3E2-4480-AFD8-78EAC8451201}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22EBE9B5-C3E2-4480-AFD8-78EAC8451201}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0854D5EF-C027-4B46-84C9-CB5F513B58D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0854D5EF-C027-4B46-84C9-CB5F513B58D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0854D5EF-C027-4B46-84C9-CB5F513B58D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0854D5EF-C027-4B46-84C9-CB5F513B58D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
