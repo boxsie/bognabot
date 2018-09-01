@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Subjects;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Bognabot.Bitmex;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Bognabot.App.Hubs
@@ -18,21 +16,21 @@ namespace Bognabot.App.Hubs
 
     public class PriceControl
     {
-        private readonly IHubContext<StreamHub> _hub;
-        private readonly BitmexService _bitmexService;
-        private readonly Subject<PriceData> _latestPrice;
+        //private readonly IHubContext<StreamHub> _hub;
+        //private readonly BitmexService _bitmexService;
+        //private readonly Subject<PriceData> _latestPrice;
 
-        public PriceControl(IHubContext<StreamHub> hub, BitmexService bitmexService)
-        {
-            _hub = hub;
-            _bitmexService = bitmexService;
-            _latestPrice = new Subject<PriceData>();
-        }
+        //public PriceControl(IHubContext<StreamHub> hub, BitmexService bitmexService)
+        //{
+        //    _hub = hub;
+        //    _bitmexService = bitmexService;
+        //    _latestPrice = new Subject<PriceData>();
+        //}
 
-        public IObservable<PriceData> StreamLatestPrice()
-        {
-            return _latestPrice;
-        }
+        //public IObservable<PriceData> StreamLatestPrice()
+        //{
+        //    return _latestPrice;
+        //}
     }
 
     public class StreamHub : Hub
@@ -46,7 +44,7 @@ namespace Bognabot.App.Hubs
 
         public ChannelReader<PriceData> StreamStocks()
         {
-            return _priceControl.StreamLatestPrice().AsChannelReader(10);
+            return null;// _priceControl.StreamLatestPrice().AsChannelReader(10);
         }
     }
 
@@ -58,22 +56,22 @@ namespace Bognabot.App.Hubs
             // back pressure, if the connection is slower than the producer, memory will
             // start to increase.
 
-            // If the channel is bounded, TryWrite will return false and effectively
-            // drop items.
+            //// If the channel is bounded, TryWrite will return false and effectively
+            //// drop items.
 
-            // The other alternative is to use a bounded channel, and when the limit is reached
-            // block on WaitToWriteAsync. This will block a thread pool thread and isn't recommended and isn't shown here.
-            var channel = maxBufferSize != null ? Channel.CreateBounded<T>(maxBufferSize.Value) : Channel.CreateUnbounded<T>();
+            //// The other alternative is to use a bounded channel, and when the limit is reached
+            //// block on WaitToWriteAsync. This will block a thread pool thread and isn't recommended and isn't shown here.
+            //var channel = maxBufferSize != null ? Channel.CreateBounded<T>(maxBufferSize.Value) : Channel.CreateUnbounded<T>();
 
-            var disposable = observable.Subscribe(
-                value => channel.Writer.TryWrite(value),
-                error => channel.Writer.TryComplete(error),
-                () => channel.Writer.TryComplete());
+            //var disposable = observable.Subscribe(
+            //    value => channel.Writer.TryWrite(value),
+            //    error => channel.Writer.TryComplete(error),
+            //    () => channel.Writer.TryComplete());
 
-            // Complete the subscription on the reader completing
-            channel.Reader.Completion.ContinueWith(task => disposable.Dispose());
+            //// Complete the subscription on the reader completing
+            //channel.Reader.Completion.ContinueWith(task => disposable.Dispose());
 
-            return channel.Reader;
+            return null; //channel.Reader;
         }
     }
 }

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Bognabot.Storage.Stores;
 using Newtonsoft.Json;
 
 namespace Bognabot.Storage.Core
@@ -40,7 +41,7 @@ namespace Bognabot.Storage.Core
             {
                 if (aesAlg == null)
                     return null;
-
+                
                 using (var encryptor = aesAlg.CreateEncryptor(keyBytes, aesAlg.IV))
                 {
                     using (var msEncrypt = new MemoryStream())
@@ -73,10 +74,10 @@ namespace Bognabot.Storage.Core
             var fullCipher = Convert.FromBase64String(encryptedText);
 
             var iv = new byte[16];
-            var cipher = new byte[16];
+            var cipher = new byte[fullCipher.Length - iv.Length];
 
             Buffer.BlockCopy(fullCipher, 0, iv, 0, iv.Length);
-            Buffer.BlockCopy(fullCipher, iv.Length, cipher, 0, iv.Length);
+            Buffer.BlockCopy(fullCipher, iv.Length, cipher, 0, fullCipher.Length - iv.Length);
 
             var keyBytes = Encoding.UTF8.GetBytes(key);
 
@@ -84,7 +85,7 @@ namespace Bognabot.Storage.Core
             {
                 if (aesAlg == null)
                     return null;
-
+                
                 using (var decryptor = aesAlg.CreateDecryptor(keyBytes, iv))
                 {
                     using (var msDecrypt = new MemoryStream(cipher))

@@ -5,13 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.1.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Design" Version="1.1.6" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Context\" />
+    <ProjectReference Include="..\Bognabot.Config\Bognabot.Config.csproj" />
+    <ProjectReference Include="..\Bognabot.Data\Bognabot.Data.csproj" />
+    <ProjectReference Include="..\Bognabot.Net\Bognabot.Net.csproj" />
   </ItemGroup>
 
 </Project>

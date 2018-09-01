@@ -5,49 +5,64 @@ using Bognabot.Storage.Stores;
 
 namespace Bognabot.Config.Core
 {
-    public class Config<T, TY> where T : AppData where TY : UserData, new()
+    public class Config<T, TY> where T : AppConfig where TY : UserConfig, new()
     {
-        public T App { get; set; }
-        public TY User { get; set; }
+        public T App { get; private set; }
+        public TY User { get; private set; }
 
         public Config(T appData)
         {
             App = appData;
         }
 
-        public async Task LoadUserSettingsAsync(string appDataPath)
+        public async Task LoadUserDataAsync(string appDataPath, string key = null)
         {
-            var filePath = StorageUtils.PathCombine(appDataPath, App.Filename);
-            
+            User = key == null
+                ? await LoadUserSettingsAsync(appDataPath, App.Filename)
+                : await LoadEncryptedUserSettingsAsync(appDataPath, App.Filename, key);
+        }
+
+        private static async Task<TY> LoadUserSettingsAsync(string appDataPath, string filename)
+        {
+            var filePath = StorageUtils.PathCombine(appDataPath, filename);
+
             using (var js = new JsonStore<TY>())
             {
+                var settings = default(TY);
+
                 if (File.Exists(filePath))
-                    User = await js.ReadAsync(filePath);
+                    settings = await js.ReadAsync(filePath);
                 else
                 {
-                    User = new TY();
-                    User.SetDefault();
+                    settings = new TY();
+                    settings.SetDefault();
 
-                    await js.WriteAsync(filePath, User);
+                    await js.WriteAsync(filePath, settings);
                 }
+
+                return settings;
             }
         }
 
-        public async Task LoadEncryptedUserSettingsAsync(string appDataPath, string key)
+        private static async Task<TY> LoadEncryptedUserSettingsAsync(string appDataPath, string filename, string key)
         {
-            var filePath = StorageUtils.PathCombine(appDataPath, App.Filename);
+            var filePath = StorageUtils.PathCombine(appDataPath, filename);
 
             using (var js = new EncryptedJsonStore<TY>(key))
             {
+                var settings = default(TY);
+
                 if (File.Exists(filePath))
-                    User = await js.ReadAsync(filePath);
+                    settings = await js.ReadAsync(filePath);
                 else
                 {
-                    User = new TY();
-                    User.SetDefault();
+                    settings = new TY();
+                    settings.SetDefault();
 
-                    await js.WriteAsync(filePath, User);
+                    await js.WriteAsync(filePath, settings);
                 }
+
+                return settings;
             }
         }
     }

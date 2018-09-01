@@ -19,7 +19,6 @@ namespace Bognabot.App
             BuildWebHost(args).Run();
         }
 
-#if DEBUG 
         public static IWebHost BuildWebHost(string[] args)
         {
             return WebHost.CreateDefaultBuilder(args)
@@ -34,20 +33,19 @@ namespace Bognabot.App
                 .UseNLog()
                 .Build();
         }
-#else
-        public static IWebHost BuildWebHost(string[] args)
-        {
-            return WebHost.CreateDefaultBuilder(args)
-                .UseElectron(args)
-                .UseStartup<Startup>()
-                .ConfigureLogging(logging =>
-                {
-                    logging.ClearProviders();
-                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-                })
-                .UseNLog()
-                .Build();
-        }
-#endif
+
+        //public static IWebHost BuildWebHost(string[] args)
+        //{
+        //    return WebHost.CreateDefaultBuilder(args)
+        //        .UseElectron(args)
+        //        .UseStartup<Startup>()
+        //        .ConfigureLogging(logging =>
+        //        {
+        //            logging.ClearProviders();
+        //            logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+        //        })
+        //        .UseNLog()
+        //        .Build();
+        //}
     }
 }

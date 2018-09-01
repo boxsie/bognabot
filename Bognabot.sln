@@ -5,17 +5,19 @@ VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.App", "Bognabot.App\Bognabot.App.csproj", "{F75CABAE-5D96-4032-9DAA-FA91157C13DE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Console", "Bognabot.Console\Bognabot.Console.csproj", "{E1B20AFD-6A03-4413-9245-CAE1B82F12CB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Storage", "Bognabot.Storage\Bognabot.Storage.csproj", "{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Bitmex", "Bognabot.Bitmex\Bognabot.Bitmex.csproj", "{0068CD82-153C-4B79-B908-A0321326A524}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Domain", "Bognabot.Domain\Bognabot.Domain.csproj", "{22EBE9B5-C3E2-4480-AFD8-78EAC8451201}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Storage", "Bognabot.Storage\Bognabot.Storage.csproj", "{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Data", "Bognabot.Data\Bognabot.Data.csproj", "{0854D5EF-C027-4B46-84C9-CB5F513B58D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Domain", "Bognabot.Domain\Bognabot.Domain.csproj", "{22EBE9B5-C3E2-4480-AFD8-78EAC8451201}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Config", "Bognabot.Config\Bognabot.Config.csproj", "{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Data", "Bognabot.Data\Bognabot.Data.csproj", "{0854D5EF-C027-4B46-84C9-CB5F513B58D8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Net", "Bognabot.Net\Bognabot.Net.csproj", "{5B636348-025A-45A2-B20B-1AA1162B9783}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Config", "Bognabot.Config\Bognabot.Config.csproj", "{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Daemon", "Bognabot.Daemon\Bognabot.Daemon.csproj", "{2BDD0492-C366-4B66-9B65-F5F71907C57F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Exchanges", "Bognabot.Exchanges\Bognabot.Exchanges.csproj", "{5063EA76-C238-49F1-A26B-C0FF0D530010}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,14 +29,6 @@ Global
 		{F75CABAE-5D96-4032-9DAA-FA91157C13DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F75CABAE-5D96-4032-9DAA-FA91157C13DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F75CABAE-5D96-4032-9DAA-FA91157C13DE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E1B20AFD-6A03-4413-9245-CAE1B82F12CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E1B20AFD-6A03-4413-9245-CAE1B82F12CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E1B20AFD-6A03-4413-9245-CAE1B82F12CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E1B20AFD-6A03-4413-9245-CAE1B82F12CB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0068CD82-153C-4B79-B908-A0321326A524}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0068CD82-153C-4B79-B908-A0321326A524}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0068CD82-153C-4B79-B908-A0321326A524}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0068CD82-153C-4B79-B908-A0321326A524}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0541ECE8-5BD3-4965-BD0C-6DD0AF49CA26}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -51,6 +45,18 @@ Global
 		{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B636348-025A-45A2-B20B-1AA1162B9783}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B636348-025A-45A2-B20B-1AA1162B9783}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B636348-025A-45A2-B20B-1AA1162B9783}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B636348-025A-45A2-B20B-1AA1162B9783}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BDD0492-C366-4B66-9B65-F5F71907C57F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BDD0492-C366-4B66-9B65-F5F71907C57F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BDD0492-C366-4B66-9B65-F5F71907C57F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BDD0492-C366-4B66-9B65-F5F71907C57F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5063EA76-C238-49F1-A26B-C0FF0D530010}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5063EA76-C238-49F1-A26B-C0FF0D530010}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5063EA76-C238-49F1-A26B-C0FF0D530010}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5063EA76-C238-49F1-A26B-C0FF0D530010}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
