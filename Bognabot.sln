@@ -13,11 +13,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Data", "Bognabot.D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Config", "Bognabot.Config\Bognabot.Config.csproj", "{7D5AA420-AE08-4ECE-94A3-FB3E8105F110}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Net", "Bognabot.Net\Bognabot.Net.csproj", "{5B636348-025A-45A2-B20B-1AA1162B9783}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Net", "Bognabot.Net\Bognabot.Net.csproj", "{5B636348-025A-45A2-B20B-1AA1162B9783}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Daemon", "Bognabot.Daemon\Bognabot.Daemon.csproj", "{2BDD0492-C366-4B66-9B65-F5F71907C57F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Exchanges", "Bognabot.Exchanges\Bognabot.Exchanges.csproj", "{5063EA76-C238-49F1-A26B-C0FF0D530010}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Bitmex", "Bognabot.Bitmex\Bognabot.Bitmex.csproj", "{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Jobs", "Bognabot.Jobs\Bognabot.Jobs.csproj", "{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,10 +55,14 @@ Global
 		{2BDD0492-C366-4B66-9B65-F5F71907C57F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2BDD0492-C366-4B66-9B65-F5F71907C57F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2BDD0492-C366-4B66-9B65-F5F71907C57F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5063EA76-C238-49F1-A26B-C0FF0D530010}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5063EA76-C238-49F1-A26B-C0FF0D530010}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5063EA76-C238-49F1-A26B-C0FF0D530010}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5063EA76-C238-49F1-A26B-C0FF0D530010}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

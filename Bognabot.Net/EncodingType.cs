@@ -9,4 +9,11 @@
         Unicode,
         BigEndianUnicode
     }
+
+    public enum HttpMethod
+    {
+        GET,
+        POST,
+        DELETE
+    }
 }

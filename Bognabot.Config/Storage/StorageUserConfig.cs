@@ -22,7 +22,7 @@ namespace Bognabot.Config.Storage
                     ? $"~/Library/Application Support/"
                     : $"Home/";
 
-            return StorageUtils.PathCombine(path, App.General.App.AppName, true);
+            return StorageUtils.PathCombine(path, Cfg.General.App.AppName, true);
         }
     }
 }

@@ -15,11 +15,11 @@ namespace Bognabot.Config.Core
             App = appData;
         }
 
-        public async Task LoadUserDataAsync(string appDataPath, string key = null)
+        public async Task LoadUserDataAsync(string key = null)
         {
             User = key == null
-                ? await LoadUserSettingsAsync(appDataPath, App.Filename)
-                : await LoadEncryptedUserSettingsAsync(appDataPath, App.Filename, key);
+                ? await LoadUserSettingsAsync(Cfg.AppDataPath, App.Filename)
+                : await LoadEncryptedUserSettingsAsync(Cfg.AppDataPath, App.Filename, key);
         }
 
         private static async Task<TY> LoadUserSettingsAsync(string appDataPath, string filename)

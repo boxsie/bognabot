@@ -4,7 +4,7 @@ using Bognabot.Config.Core;
 
 namespace Bognabot.Config.Exchange
 {
-    public class ExchangeAppConfig : Core.AppConfig
+    public class ExchangeAppConfig : AppConfig
     {
         public ExchangeSpecificAppConfig Bitmex { get; set; }
     }

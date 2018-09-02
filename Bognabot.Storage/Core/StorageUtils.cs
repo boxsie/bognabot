@@ -102,6 +102,20 @@ namespace Bognabot.Storage.Core
             }
         }
 
+        public static byte[] EncryptHMACSHA256(byte[] keyByte, byte[] messageBytes)
+        {
+            using (var hash = new HMACSHA256(keyByte))
+                return hash.ComputeHash(messageBytes);
+        }
+
+        public static string ByteArrayToHexString(byte[] ba)
+        {
+            var hex = new StringBuilder(ba.Length * 2);
+            foreach (byte b in ba)
+                hex.AppendFormat("{0:x2}", b);
+            return hex.ToString();
+        }
+
         private static string PadKey(string key)
         {
             const int bitLen = 32;

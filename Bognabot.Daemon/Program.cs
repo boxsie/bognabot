@@ -1,16 +1,19 @@
-﻿
-
-using System;
+﻿using System;
 using System.Threading.Tasks;
+using Bognabot.Bitmex;
+using Bognabot.Bitmex.Core;
+using Bognabot.Bitmex.Http;
+using Bognabot.Bitmex.Socket;
 using Bognabot.Config;
-using Bognabot.Exchanges.Bitmex;
-using Bognabot.Exchanges.Bitmex.Core;
+using Bognabot.Jobs;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging;
-using IHostingEnvironment = Microsoft.Extensions.Hosting.IHostingEnvironment;
+using NLog;
+using NLog.Extensions.Logging;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Bognabot.Daemon
 {
@@ -25,7 +28,14 @@ namespace Bognabot.Daemon
             var serviceProvider = serviceCollection.BuildServiceProvider();
 
             // Attach Config
-            Config.App.AttachConfig(AppDomain.CurrentDomain.BaseDirectory, serviceProvider).GetAwaiter().GetResult();
+            Cfg.AttachConfig(serviceProvider);
+
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+            loggerFactory.AddNLog(new NLogProviderOptions { CaptureMessageTemplates = true, CaptureMessageProperties = true });
+            LogManager.LoadConfiguration($"{AppDomain.CurrentDomain.BaseDirectory}/nlog.config");
+
+            var jobService = serviceProvider.GetService<JobService>();
+            Task.Run(() => ConfigureApp(jobService));
 
             serviceProvider.GetService<App>().Run();
 
@@ -38,22 +48,19 @@ namespace Bognabot.Daemon
             services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Trace));
             
-            var configuration = Config.App.BuildConfig(services);
+            var configuration = Config.Cfg.BuildConfig(services, AppDomain.CurrentDomain.BaseDirectory);
 
-            services.AddSingleton<BitmexStream>();
+            services.AddTransient<BitmexSocketClient>();
+            services.AddTransient<BitmexHttpClient>();
+            services.AddSingleton<BitmexService>();
 
             services.AddTransient<App>();
         }
 
-        private static IHostingEnvironment GetHostingEnviroment()
+        private static async Task ConfigureApp(JobService jobService)
         {
-            return new HostingEnvironment
-            {
-                EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
-                ApplicationName = AppDomain.CurrentDomain.FriendlyName,
-                ContentRootPath = AppDomain.CurrentDomain.BaseDirectory,
-                ContentRootFileProvider = new PhysicalFileProvider(AppDomain.CurrentDomain.BaseDirectory)
-            };
+            await Cfg.LoadUserDataAsync();
+            await jobService.RunAsync();
         }
     }
 }

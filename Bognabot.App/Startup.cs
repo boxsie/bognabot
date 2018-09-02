@@ -1,55 +1,78 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using AutoMapper;
 using Bognabot.App.Hubs;
+using Bognabot.Bitmex;
+using Bognabot.Bitmex.Core;
+using Bognabot.Bitmex.Http;
+using Bognabot.Bitmex.Socket;
 using Bognabot.Config;
-using Bognabot.Config.Core;
+using Bognabot.Data;
+using Bognabot.Data.Core;
+using Bognabot.Data.Exchange;
+using Bognabot.Data.Exchange.Contracts;
+using Bognabot.Data.Mapping;
 using Bognabot.Data.Models.Exchange;
-using Bognabot.Exchanges.Bitmex;
-using Bognabot.Exchanges.Bitmex.Core;
-using Bognabot.Exchanges.Bitmex.Streams;
-using Bognabot.Exchanges.Bitmex.Trade;
-using Bognabot.Exchanges.Core;
-using ElectronNET.API;
-using ElectronNET.API.Entities;
+using Bognabot.Data.Repository;
+using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Jobs;
+using Bognabot.Jobs.Init;
+using Bognabot.Jobs.Sync;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using NLog;
+using NLog.Extensions.Logging;
+using NLog.Web;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Bognabot.App
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
+        private IConfiguration _configuration;
+        private readonly IHostingEnvironment _env;
 
-        public IConfiguration Configuration { get; }
+        public Startup(IConfiguration configuration, IHostingEnvironment env)
+        {
+            _configuration = configuration;
+            _env = env;
+        }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            var config = Config.App.BuildConfig(services);
+            var logger = NLogBuilder.ConfigureNLog($"{_env.ContentRootPath}/nlog.config").GetCurrentClassLogger();
+
+            var config = Cfg.BuildConfig(services, _env.ContentRootPath);
+
+            services.AddSingleton<ILoggerFactory, LoggerFactory>();
+            services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+            services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Debug));
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            
             services.AddSignalR();
 
-            services.AddTransient<BitmexStream>();
-            services.AddTransient<BitmexCommand>();
-            services.AddSingleton<BitmexService>();
+            services.AddTransient<BitmexSocketClient>();
+            services.AddTransient<BitmexHttpClient>();
+            services.AddSingleton<IExchangeService, BitmexService>();
+
+            services.AddSingleton<RepositoryService>();
+            services.AddTransient<IRepository<Candle>, Repository<Candle>>();
+
+            services.AddSingleton<JobService>();
+            services.AddTransient<CandleSync>();
+            services.AddTransient<CandleCatchup>();
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IServiceProvider serviceProvider)
+        public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider)
         {
-            if (env.IsDevelopment())
+            if (_env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -74,42 +97,23 @@ namespace Bognabot.App
                 routes.MapHub<StreamHub>("/streamhub");
             });
 
-            ConfigureApp(app, env, serviceProvider);
+            Mapper.Initialize(cfg =>
+            {
+                cfg.AddProfile<DataProfile>();
+                cfg.AddProfile<BitmexProfile>();
+            });
+
+            Cfg.AttachConfig(serviceProvider);
+
+            var jobService = serviceProvider.GetService<JobService>();
+            Task.Run(() => ConfigureApp(jobService));
         }
 
-        private static void ConfigureApp(IApplicationBuilder app, IHostingEnvironment env, IServiceProvider serviceProvider)
+        private static async Task ConfigureApp(JobService jobService)
         {
-            Config.App.AttachConfig(env.ContentRootPath, serviceProvider).GetAwaiter().GetResult();
-
-            //await ElectronBootstrap.Init();
-
-            var bds = serviceProvider.GetService<BitmexService>();
-
-            Task.Run(bds.SubscribeToStreams);
-
-            bds.OnTradeReceived += OnTradeReceived;
-            bds.OnBookReceived += OnBookReceived;
-
-            var candles = bds.GetCandles(TimePeriod.OneMinute, DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now).GetAwaiter().GetResult();
-
-            foreach (var candle in candles)
-                Console.WriteLine($"CANDLE: {candle.Instrument.ToString().ToUpper()} - {candle.Timestamp}  - H:{candle.High} L:{candle.Low} O:{candle.Open} C:{candle.Close}");
-        }
-
-        private static Task OnBookReceived(BookModel[] arg)
-        {
-            foreach (var response in arg)
-                Console.WriteLine($"BOOK: {response.Instrument.ToString().ToUpper()} - {response.Timestamp} - {response.Side.ToString()}:{response.Size} @ ${response.Price:N}");
-
-            return Task.CompletedTask;
-        }
-
-        private static Task OnTradeReceived(TradeModel[] arg)
-        {
-            foreach (var response in arg)
-                Console.WriteLine($"TRADE: {response.Instrument.ToString().ToUpper()} - {response.Timestamp} - {response.Side.ToString()}:{response.Size} @ ${response.Price:N}");
-
-            return Task.CompletedTask;
+            await Cfg.LoadUserDataAsync();
+            await jobService.RunAsync();
+            await ElectronBootstrap.InitAsync();
         }
     }
 }

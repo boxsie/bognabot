@@ -7,7 +7,7 @@ namespace Bognabot.App
 {
     public static class ElectronBootstrap
     {
-        public static async Task Init()
+        public static async Task InitAsync()
         {
             await CreateWindow();
 

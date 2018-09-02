@@ -1,15 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Bognabot.Config;
-using Bognabot.Exchanges.Bitmex;
-using Bognabot.Exchanges.Bitmex.Core;
-using Bognabot.Exchanges.Bitmex.Streams;
-using Bognabot.Exchanges.Bitmex.Trade;
-using Bognabot.Exchanges.Core;
-using Bognabot.Net;
+using Bognabot.Bitmex;
+using Bognabot.Data.Models.Exchange;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Bognabot.Daemon
 {
@@ -17,27 +10,35 @@ namespace Bognabot.Daemon
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<App> _logger;
-        private readonly BitmexStream _bitmexDataStream;
+        private readonly BitmexService _bitmexService;
 
-        public App(IServiceProvider serviceProvider, ILogger<App> logger, BitmexStream _bitmexDataStream)
+        public App(IServiceProvider serviceProvider, ILogger<App> logger, BitmexService bitmexService)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
-            this._bitmexDataStream = _bitmexDataStream;
+            _bitmexService = bitmexService;
         }
 
         public async void Run()
         {
-            await _bitmexDataStream.ConnectAsync();
+            await _bitmexService.SubscribeToStreams();
 
-            await _bitmexDataStream.SubscribeAsync<BitmexTradeStreamResponse>(OnReceive, Config.App.Exchange.App.Bitmex.BtcUsdName);
-            await _bitmexDataStream.SubscribeAsync<BitmexBookStreamResponse>(OnReceive, Config.App.Exchange.App.Bitmex.BtcUsdName);
+            _bitmexService.OnTradeReceived += OnTradeReceived;
+            //_bitmexService.OnBookReceived += OnBookReceived;
         }
 
-        private Task OnReceive<T>(T[] arg) where T : StreamResponse
+        private static Task OnBookReceived(BookModel[] arg)
         {
             foreach (var response in arg)
-                Console.WriteLine(JObject.Parse(JsonConvert.SerializeObject(response)));
+                Console.WriteLine($"BOOK: {response.Instrument.ToString().ToUpper()} - {response.Timestamp} - {response.Side.ToString()}:{response.Size} @ ${response.Price:N}");
+
+            return Task.CompletedTask;
+        }
+
+        private static Task OnTradeReceived(TradeModel[] arg)
+        {
+            foreach (var response in arg)
+                Console.WriteLine($"TRADE: {response.Instrument.ToString().ToUpper()} - {response.Timestamp} - {response.Side.ToString()}:{response.Size} @ ${response.Price:N}");
 
             return Task.CompletedTask;
         }

@@ -25,11 +25,7 @@ namespace Bognabot.App
                 .UseKestrel()
                 .UseUrls("http://localhost:5000")
                 .UseStartup<Startup>()
-                .ConfigureLogging(logging =>
-                {
-                    logging.ClearProviders();
-                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-                })
+                .ConfigureLogging(logging => { logging.ClearProviders(); })
                 .UseNLog()
                 .Build();
         }

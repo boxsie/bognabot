@@ -1,7 +1,8 @@
 ﻿{
   "General": {
     "Filename": "general.json",
-    "AppName": "Bognabot"
+    "AppName": "Bognabot",
+    "DbFilename": "bognabot.db"
   },
   "Storage": {
     "Filename": "storage.json"
@@ -11,7 +12,8 @@
     "Bitmex": {
       "WebSocketUrl": "wss://testnet.bitmex.com/realtime",
       "RestUrl": "https://testnet.bitmex.com/api/v1",
-      "BtcUsdName": "XBTUSD",
+      "SupportedInstruments": [ "BTCUSD" ],
+      "InstrumentNames": [ "XBTUSD" ],
       "TradePath": "trade",
       "BookPath": "orderBookL2",
       "CandlePath": "/trade/bucketed"
