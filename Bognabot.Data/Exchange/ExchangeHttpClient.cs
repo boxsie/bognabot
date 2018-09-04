@@ -42,7 +42,8 @@ namespace Bognabot.Data.Exchange
 
                 var response = await client.GetAsync(queryUri);
 
-                _logger.Log(response.IsSuccessStatusCode ? LogLevel.Debug : LogLevel.Error, $"{request.HttpMethod} {request.GetType().Name} {response.ReasonPhrase}");
+                _logger.Log(LogLevel.Debug, $"{request.HttpMethod} {request.GetType().Name} {queryUri}");
+                _logger.Log(response.IsSuccessStatusCode ? LogLevel.Information : LogLevel.Error, $"{request.HttpMethod} {request.GetType().Name} {response.ReasonPhrase}");
 
                 if (!response.IsSuccessStatusCode)
                     return null;

@@ -9,6 +9,9 @@ using Bognabot.Bitmex.Http.Requests;
 using Bognabot.Bitmex.Http.Responses;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Bitmex.Socket.Responses;
+using Bognabot.Config;
+using Bognabot.Config.Core;
+using Bognabot.Config.Enums;
 using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Models.Exchange;
@@ -18,7 +21,7 @@ namespace Bognabot.Bitmex
 {
     public class BitmexService : IExchangeService
     {
-        public ExchangeType ExchangeType => ExchangeType.Bitmex;
+        public SupportedExchange Exchange => SupportedExchange.Bitmex;
         public DateTimeOffset Now => BitmexUtils.Now();
 
         public event Func<TradeModel[], Task> OnTradeReceived;
@@ -26,28 +29,41 @@ namespace Bognabot.Bitmex
 
         private readonly BitmexSocketClient _bitmexSocketClient;
         private readonly BitmexHttpClient _bitmexHttpClient;
+        private readonly ExchangeConfig _config;
 
         public BitmexService(BitmexSocketClient bitmexSocketClient, BitmexHttpClient bitmexHttpClient)
         {
             _bitmexSocketClient = bitmexSocketClient;
             _bitmexHttpClient = bitmexHttpClient;
+            
+            _config = Cfg.GetExchangeConfig(SupportedExchange.Bitmex);
         }
 
         public async Task SubscribeToStreams()
         {
             await _bitmexSocketClient.ConnectAsync();
 
-            await _bitmexSocketClient.SubscribeAsync<TradeSocketResponse>(OnReceiveTrade, BitmexUtils.ToSymbol(InstrumentType.BTCUSD));
-            await _bitmexSocketClient.SubscribeAsync<BookSocketResponse>(OnReceiveBook, BitmexUtils.ToSymbol(InstrumentType.BTCUSD));
+            await _bitmexSocketClient.SubscribeAsync<TradeSocketResponse>(OnReceiveTrade, BitmexUtils.ToSymbol(Instrument.BTCUSD));
+            await _bitmexSocketClient.SubscribeAsync<BookSocketResponse>(OnReceiveBook, BitmexUtils.ToSymbol(Instrument.BTCUSD));
         }
 
-        public async Task GetCandlesAsync(TimePeriod candleSize, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve)
+        public async Task GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve)
         {
-            var request = RequestFactory.GetTradeRequest(InstrumentType.BTCUSD, candleSize, startTime, endTime);
-
             var stopwatch = new Stopwatch();
             var total = 0;
             var count = 0;
+
+            var request = new TradeCommandRequest
+            {
+                IsAuth = true,
+                Path = _config.CandlePath,
+                Symbol = BitmexUtils.ToSymbol(instrument),
+                StartAt = 0,
+                Count = 750,
+                TimeInterval = timePeriod.ToBitmexTimePeriod(),
+                StartTime = startTime.ToUtcTimeString(),
+                EndTime = endTime.ToUtcTimeString(),
+            };
 
             do
             {
@@ -59,7 +75,15 @@ namespace Bognabot.Bitmex
 
                 var candles = await _bitmexHttpClient.GetAsync<TradeCommandRequest, TradeCommandResponse>(request);
 
-                await onRecieve.Invoke(candles?.Select(Mapper.Map<CandleModel>).ToArray() ?? null);
+                var candleModels = candles?.Select(Mapper.Map<CandleModel>).ToArray() ?? null;
+
+                if (candleModels != null)
+                {
+                    foreach (var model in candleModels)
+                        model.Period = timePeriod;
+                }
+
+                await onRecieve.Invoke(candleModels);
 
                 count = candles?.Length ?? 0;
 

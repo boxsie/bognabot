@@ -1,12 +1,15 @@
 ﻿using Bognabot.Config.Core;
-using Bognabot.Storage.Core;
 
 namespace Bognabot.Config.General
 {
-    public class GeneralUserConfig : UserConfig
+    public class GeneralUserConfig : IUserConfig
     {
-        public override void SetDefault()
+        public string Filename => "general.json";
+        public string EncryptionKey => null;
+
+        public void SetDefault()
         {
+
         }
     }
 }

@@ -14,6 +14,17 @@ namespace Bognabot.Storage.Core
     {
         private const string EncryptKeyBase = "E546C8DF278CD5931069B522E695D4F2";
 
+        public static string GetDefaultUserDataPath(string appName)
+        {
+            var path = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Environment.GetEnvironmentVariable("LocalAppData")
+                : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? $"~/Library/Application Support/"
+                    : $"Home/";
+
+            return StorageUtils.PathCombine(path, appName, true);
+        }
+
         public static string PathCombine(string first, string second, bool trailing = false)
         {
             var pathSeperator = Path.DirectorySeparatorChar;

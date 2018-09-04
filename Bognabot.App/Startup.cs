@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using System.Threading.Tasks;
 using AutoMapper;
 using Bognabot.App.Hubs;
@@ -8,12 +7,8 @@ using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Http;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Config;
-using Bognabot.Data;
-using Bognabot.Data.Core;
-using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Mapping;
-using Bognabot.Data.Models.Exchange;
 using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Jobs;
@@ -22,37 +17,32 @@ using Bognabot.Jobs.Sync;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog;
-using NLog.Extensions.Logging;
 using NLog.Web;
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Bognabot.App
 {
     public class Startup
     {
-        private IConfiguration _configuration;
+        private readonly Logger _logger; 
         private readonly IHostingEnvironment _env;
+        private readonly IServiceProvider _serviceProvider;
 
-        public Startup(IConfiguration configuration, IHostingEnvironment env)
+        public Startup(IHostingEnvironment env, IServiceProvider serviceProvider)
         {
-            _configuration = configuration;
             _env = env;
+            _serviceProvider = serviceProvider;
+
+            _logger = NLogBuilder.ConfigureNLog($"{_env.ContentRootPath}/nlog.config").GetCurrentClassLogger();
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            var logger = NLogBuilder.ConfigureNLog($"{_env.ContentRootPath}/nlog.config").GetCurrentClassLogger();
-
-            var config = Cfg.BuildConfig(services, _env.ContentRootPath);
-
             services.AddSingleton<ILoggerFactory, LoggerFactory>();
             services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
-            services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Debug));
+            services.AddLogging();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             
@@ -68,9 +58,11 @@ namespace Bognabot.App
             services.AddSingleton<JobService>();
             services.AddTransient<CandleSync>();
             services.AddTransient<CandleCatchup>();
+
+            Cfg.AddServices(services);
         }
 
-        public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider)
+        public void Configure(IApplicationBuilder app)
         {
             if (_env.IsDevelopment())
             {
@@ -102,17 +94,16 @@ namespace Bognabot.App
                 cfg.AddProfile<DataProfile>();
                 cfg.AddProfile<BitmexProfile>();
             });
-
-            Cfg.AttachConfig(serviceProvider);
-
-            var jobService = serviceProvider.GetService<JobService>();
-            Task.Run(() => ConfigureApp(jobService));
+            
+            Task.Run(ConfigureApp);
         }
 
-        private static async Task ConfigureApp(JobService jobService)
+        private async Task ConfigureApp()
         {
-            await Cfg.LoadUserDataAsync();
-            await jobService.RunAsync();
+            await Cfg.LoadUserDataAsync(_serviceProvider, _env.ContentRootPath);
+
+            await _serviceProvider.GetService<JobService>().RunAsync();
+
             await ElectronBootstrap.InitAsync();
         }
     }

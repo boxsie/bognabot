@@ -5,29 +5,38 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Bognabot.Config;
-using Bognabot.Config.Exchange;
-using Bognabot.Data.Models.Exchange;
+using Bognabot.Config.Core;
+using Bognabot.Config.Enums;
+using Bognabot.Config.General;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Storage.Core;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Logging;
 
 namespace Bognabot.Data.Repository
 {
     public class RepositoryService
     {
+        private readonly ILogger<RepositoryService> _logger;
+        private readonly GeneralConfig _generalConfig;
+        private readonly List<ExchangeConfig> _exchangeConfigs;
+
         private List<string> _availableTables;
 
-        public RepositoryService()
+        public RepositoryService(ILogger<RepositoryService> logger, GeneralConfig generalConfig, IEnumerable<ExchangeConfig> exchangeConfigs)
         {
+            _logger = logger;
+            _generalConfig = generalConfig;
+            _exchangeConfigs = exchangeConfigs.ToList();
             _availableTables = new List<string>();
 
             EnsureDbCreated();
             RegisterTableNames();
         }
 
-        public async Task<IRepository<Candle>> GetCandleRepository(ExchangeType exchange, InstrumentType instrument, TimePeriod period)
+        public async Task<IRepository<Candle>> GetCandleRepository(SupportedExchange exchange, Instrument instrument, TimePeriod period)
         {
-            var repo = new Repository<Candle>();
+            var repo = new Repository<Candle>(_logger);
 
             var tableName = GetCandleTableName(exchange, instrument, period);
 
@@ -41,42 +50,49 @@ namespace Bognabot.Data.Repository
 
         private void EnsureDbCreated()
         {
-            var dbPath = StorageUtils.PathCombine(Cfg.AppDataPath, Cfg.General.App.DbFilename);
+            _logger.LogInformation($"Looking for database...");
 
-            if (!File.Exists(dbPath))
-                SQLiteConnection.CreateFile(dbPath);
+            var dbPath = StorageUtils.PathCombine(Cfg.UserDataPath, _generalConfig.DbFilename);
+
+            _logger.LogDebug($"Looking for database at {dbPath}");
+
+            if (File.Exists(dbPath))
+                return;
+
+            _logger.LogInformation($"Database not found, creating...");
+
+            SQLiteConnection.CreateFile(dbPath);
+
+            _logger.LogInformation($"Database created");
         }
 
         private void RegisterTableNames()
         {
             _availableTables = new List<string>();
 
-            var instruments = Enum.GetValues(typeof(InstrumentType)).Cast<InstrumentType>();
-
-            var exchangeConfigs = typeof(ExchangeAppConfig).GetProperties()
-                .Where(x => x.PropertyType == typeof(ExchangeSpecificAppConfig))
-                .ToDictionary(x => (ExchangeType)Enum.Parse(typeof(ExchangeType), x.Name),
-                    y => (ExchangeSpecificAppConfig)y.GetValue(Cfg.Exchange.App));
-
-            var connectionString = GetConnectionString();
-
+            var instruments = Enum.GetValues(typeof(Instrument)).Cast<Instrument>();
+            var periods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>();
+            
             foreach (var instrument in instruments)
             {
-                var supportedExchanges = exchangeConfigs
-                    .Where(x => x.Value.SupportedInstruments
-                        .Any(y => y.ToLower() == instrument.ToString().ToLower()));
+                foreach (var exchange in _exchangeConfigs)
+                {
+                    var supportedPeriods = exchange.SupportedTimePeriods;
 
-                foreach (var exchange in supportedExchanges)
-                    _availableTables.Add(GetCandleTableName(exchange.Key, instrument, TimePeriod.OneMinute));
+                    foreach (var period in supportedPeriods)
+                    {
+                        _availableTables.Add(GetCandleTableName(exchange.Exchange, instrument, period.Key));
+                    }
+                }
             }
         }
 
-        private static string GetConnectionString()
+        private string GetConnectionString()
         {
-            return $"Data Source={StorageUtils.PathCombine(Cfg.AppDataPath, Cfg.General.App.DbFilename)};";
+            return $"Data Source={StorageUtils.PathCombine(Cfg.UserDataPath, _generalConfig.DbFilename)};";
         }
 
-        private static string GetCandleTableName(ExchangeType exchange, InstrumentType instrument, TimePeriod period)
+        private static string GetCandleTableName(SupportedExchange exchange, Instrument instrument, TimePeriod period)
         {
             return $"{exchange}_{instrument}_{period}_Candles";
         }

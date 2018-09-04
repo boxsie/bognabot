@@ -1,28 +1,26 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Bognabot.Config.Core;
+using Bognabot.Config.General;
 using Bognabot.Storage.Core;
 
 namespace Bognabot.Config.Storage
 {
-    public class StorageUserConfig : UserConfig
+    public class StorageUserConfig : IUserConfig
     {
+        public string Filename => "storage.json";
+        public string EncryptionKey => null;
+
         public string UserDataPath { get; set; }
-        
-        public override void SetDefault()
+
+        public void SetDefault()
         {
             UserDataPath = GetDefaultUserDataPath();
         }
 
         private static string GetDefaultUserDataPath()
         {
-            var path = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? Environment.GetEnvironmentVariable("LocalAppData")
-                : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                    ? $"~/Library/Application Support/"
-                    : $"Home/";
-
-            return StorageUtils.PathCombine(path, Cfg.General.App.AppName, true);
+            return StorageUtils.GetDefaultUserDataPath(Cfg.GetConfig<GeneralConfig>().AppName);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Bognabot.Data.Models.Exchange
+﻿namespace Bognabot.Config.Enums
 {
     public enum TimePeriod
     {

@@ -4,6 +4,8 @@ using System.Text;
 using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Socket.Responses;
 using Bognabot.Config;
+using Bognabot.Config.Core;
+using Bognabot.Config.Enums;
 using Bognabot.Data.Exchange;
 using Bognabot.Net.Api;
 using Bognabot.Storage.Core;
@@ -16,20 +18,24 @@ namespace Bognabot.Bitmex.Socket
         protected override Uri DataUri { get; }
         protected override Dictionary<Type, ISocketChannel> Channels { get; }
 
+        private readonly ExchangeConfig _config;
+        
         public BitmexSocketClient()
         {
-            DataUri = new Uri(Cfg.Exchange.App.Bitmex.WebSocketUrl);
+            _config = Cfg.GetExchangeConfig(SupportedExchange.Bitmex);
+
+            DataUri = new Uri(_config.WebSocketUrl);
 
             Channels = new Dictionary<Type, ISocketChannel>
             {
-                { typeof(TradeSocketResponse), new SocketChannel<TradeSocketResponse>(Cfg.Exchange.App.Bitmex.TradePath) },
-                { typeof(BookSocketResponse), new SocketChannel<BookSocketResponse>(Cfg.Exchange.App.Bitmex.BookPath) }
+                { typeof(TradeSocketResponse), new SocketChannel<TradeSocketResponse>(_config.TradePath) },
+                { typeof(BookSocketResponse), new SocketChannel<BookSocketResponse>(_config.BookPath) }
             };
         }
 
         protected override string GetAuthRequest()
         {
-            return $@"{{""op"": ""authKeyExpires"", ""args"": [""{Cfg.Exchange.User.Bitmex.Key}"", {BitmexUtils.Expires()}, ""{CreateSignature(Cfg.Exchange.User.Bitmex.Secret)}""]}}";
+            return $@"{{""op"": ""authKeyExpires"", ""args"": [""{_config.UserConfig.Key}"", {BitmexUtils.Expires()}, ""{CreateSignature(_config.UserConfig.Secret)}""]}}";
         }
 
         protected override SocketResponse[] ParseResponseJson(string json)

@@ -2,7 +2,7 @@
 
 namespace Bognabot.Config.Storage
 {
-    public class StorageAppConfig : Core.AppConfig
+    public class StorageConfig : BaseConfig<StorageUserConfig>
     {
 
     }

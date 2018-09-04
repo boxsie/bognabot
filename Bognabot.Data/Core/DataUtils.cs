@@ -2,7 +2,6 @@
 using System.Linq;
 using AutoMapper;
 using Bognabot.Config;
-using Bognabot.Config.Exchange;
 using Bognabot.Data.Models.Exchange;
 using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;

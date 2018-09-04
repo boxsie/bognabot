@@ -13,31 +13,30 @@ using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
+using NLog.Web;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Bognabot.Daemon
 {
     class Program
     {
+        private static Logger _logger;
+        private static IServiceProvider _serviceProvider;
+
         static void Main(string[] args)
         {
             var serviceCollection = new ServiceCollection();
 
             ConfigureServices(serviceCollection);
 
-            var serviceProvider = serviceCollection.BuildServiceProvider();
-
-            // Attach Config
-            Cfg.AttachConfig(serviceProvider);
-
-            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+            
+            var loggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>();
             loggerFactory.AddNLog(new NLogProviderOptions { CaptureMessageTemplates = true, CaptureMessageProperties = true });
-            LogManager.LoadConfiguration($"{AppDomain.CurrentDomain.BaseDirectory}/nlog.config");
 
-            var jobService = serviceProvider.GetService<JobService>();
-            Task.Run(() => ConfigureApp(jobService));
+            Task.Run(ConfigureApp);
 
-            serviceProvider.GetService<App>().Run();
+            _serviceProvider.GetService<App>().Run();
 
             Console.Read();
         }
@@ -47,8 +46,8 @@ namespace Bognabot.Daemon
             services.AddSingleton<ILoggerFactory, LoggerFactory>();
             services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Trace));
-            
-            var configuration = Config.Cfg.BuildConfig(services, AppDomain.CurrentDomain.BaseDirectory);
+
+            _logger = NLogBuilder.ConfigureNLog($"{AppDomain.CurrentDomain.BaseDirectory}/nlog.config").GetCurrentClassLogger();
 
             services.AddTransient<BitmexSocketClient>();
             services.AddTransient<BitmexHttpClient>();
@@ -57,10 +56,11 @@ namespace Bognabot.Daemon
             services.AddTransient<App>();
         }
 
-        private static async Task ConfigureApp(JobService jobService)
+        private static async Task ConfigureApp()
         {
-            await Cfg.LoadUserDataAsync();
-            await jobService.RunAsync();
+            await Cfg.LoadUserDataAsync(_serviceProvider, AppDomain.CurrentDomain.BaseDirectory);
+
+            await _serviceProvider.GetService<JobService>().RunAsync();
         }
     }
 }

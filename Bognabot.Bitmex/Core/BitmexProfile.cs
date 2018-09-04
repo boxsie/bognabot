@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Bognabot.Bitmex.Http.Responses;
 using Bognabot.Bitmex.Socket.Responses;
+using Bognabot.Config.Enums;
 using Bognabot.Data.Models.Exchange;
 using Bognabot.Domain.Entities.Instruments;
 
@@ -11,7 +12,7 @@ namespace Bognabot.Bitmex.Core
         public BitmexProfile()
         {
             CreateMap<TradeCommandResponse, CandleModel>()
-                .ForMember(d => d.ExchangeType, o => o.MapFrom(s => ExchangeType.Bitmex))
+                .ForMember(d => d.Exchange, o => o.MapFrom(s => SupportedExchange.Bitmex))
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => BitmexUtils.ToInstrumentType(s.Symbol)))
                 .ForMember(d => d.Period, o => o.Ignore());
 

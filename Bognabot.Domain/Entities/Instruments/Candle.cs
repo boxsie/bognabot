@@ -2,16 +2,6 @@
 
 namespace Bognabot.Domain.Entities.Instruments
 {
-    public enum ExchangeType
-    {
-        Bitmex
-    }
-    
-    public enum InstrumentType
-    {
-        BTCUSD
-    }
-
     public class Candle
     {
         public double High { get; set; }

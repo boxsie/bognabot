@@ -1,4 +1,5 @@
 ﻿using System;
+using Bognabot.Config.Enums;
 using Bognabot.Domain.Entities.Instruments;
 
 namespace Bognabot.Data.Models.Exchange
@@ -11,8 +12,8 @@ namespace Bognabot.Data.Models.Exchange
         public double Close { get; set; }
         public double Volume { get; set; }
         public long Trades { get; set; }
-        public ExchangeType ExchangeType { get; set; }
-        public InstrumentType Instrument { get; set; }
+        public SupportedExchange Exchange { get; set; }
+        public Instrument Instrument { get; set; }
         public DateTimeOffset Timestamp { get; set; }
         public TimePeriod Period { get; set; }
     }

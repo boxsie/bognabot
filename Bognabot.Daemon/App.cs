@@ -23,24 +23,24 @@ namespace Bognabot.Daemon
         {
             await _bitmexService.SubscribeToStreams();
 
-            _bitmexService.OnTradeReceived += OnTradeReceived;
+            //_bitmexService.OnTradeReceived += OnTradeReceived;
             //_bitmexService.OnBookReceived += OnBookReceived;
         }
 
-        private static Task OnBookReceived(BookModel[] arg)
-        {
-            foreach (var response in arg)
-                Console.WriteLine($"BOOK: {response.Instrument.ToString().ToUpper()} - {response.Timestamp} - {response.Side.ToString()}:{response.Size} @ ${response.Price:N}");
+        //private static Task OnBookReceived(BookModel[] arg)
+        //{
+        //    foreach (var response in arg)
+        //        Console.WriteLine($"BOOK: {response.Instrument.ToString().ToUpper()} - {response.Timestamp} - {response.Side.ToString()}:{response.Size} @ ${response.Price:N}");
 
-            return Task.CompletedTask;
-        }
+        //    return Task.CompletedTask;
+        //}
 
-        private static Task OnTradeReceived(TradeModel[] arg)
-        {
-            foreach (var response in arg)
-                Console.WriteLine($"TRADE: {response.Instrument.ToString().ToUpper()} - {response.Timestamp} - {response.Side.ToString()}:{response.Size} @ ${response.Price:N}");
+        //private static Task OnTradeReceived(TradeModel[] arg)
+        //{
+        //    foreach (var response in arg)
+        //        Console.WriteLine($"TRADE: {response.Instrument.ToString().ToUpper()} - {response.Timestamp} - {response.Side.ToString()}:{response.Size} @ ${response.Price:N}");
 
-            return Task.CompletedTask;
-        }
+        //    return Task.CompletedTask;
+        //}
     }
 }

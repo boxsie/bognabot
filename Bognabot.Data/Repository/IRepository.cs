@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Bognabot.Data.Repository
 {
@@ -6,6 +7,7 @@ namespace Bognabot.Data.Repository
     {
         Task LoadAsync(string connectionString, string tableName);
 
-        Task<int> Create(T entity);
+        Task<int> CreateAsync(T entity);
+        Task<IEnumerable<int>> CreateAsync(IEnumerable<T> entities);
     }
 }

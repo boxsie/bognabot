@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Bognabot.Config.Enums;
 using Bognabot.Data.Models.Exchange;
 using Bognabot.Domain.Entities.Instruments;
 
@@ -7,7 +8,7 @@ namespace Bognabot.Data.Exchange.Contracts
 {
     public interface IExchangeService
     {
-        ExchangeType ExchangeType { get; }
+        SupportedExchange Exchange { get; }
 
         DateTimeOffset Now { get; }
 
@@ -15,6 +16,6 @@ namespace Bognabot.Data.Exchange.Contracts
         event Func<BookModel[], Task> OnBookReceived;
 
         Task SubscribeToStreams();
-        Task GetCandlesAsync(TimePeriod candleSize, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve);
+        Task GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve);
     }
 }

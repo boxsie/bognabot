@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Bognabot.Config;
+using Bognabot.Config.Enums;
 using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Models.Exchange;
@@ -30,9 +31,30 @@ namespace Bognabot.Jobs.Init
 
         public override async Task ExecuteAsync()
         {
-            foreach (var exchangeService in _exchangeServices)
+            var instruments = Enum.GetValues(typeof(Instrument)).Cast<Instrument>();
+            var periods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>();
+
+            foreach (var instrument in instruments)
             {
-                await exchangeService.GetCandlesAsync(TimePeriod.OneMinute, DateTimeOffset.Now.AddDays(-Cfg.Exchange.User.HistoryDays), DateTimeOffset.Now, OnRecieve);
+                var supportedExchanges = Cfg.GetExchangeConfigs();
+
+                foreach (var exchange in supportedExchanges)
+                {
+                    var exchangeService = _exchangeServices.FirstOrDefault(x => x.Exchange == exchange.Exchange);
+
+                    if (exchangeService == null)
+                        continue;
+
+                    var supportedPeriods = exchange.SupportedTimePeriods;
+
+                    foreach (var period in supportedPeriods)
+                        await exchangeService.GetCandlesAsync(
+                            instrument,
+                            period.Key, 
+                            CalculateStartTime(period.Key, exchange.UserConfig.MaxDataPoints),
+                            DateTimeOffset.Now, 
+                            OnRecieve);
+                }
             }
         }
 
@@ -43,14 +65,34 @@ namespace Bognabot.Jobs.Init
 
             var first = arg.First();
 
-            var candleRepo = await _repoService.GetCandleRepository(first.ExchangeType, first.Instrument, TimePeriod.OneMinute);
+            var candleRepo = await _repoService.GetCandleRepository(first.Exchange, first.Instrument, first.Period);
 
             _logger.Log(LogLevel.Debug, $"Inserting {arg.Length} candle records");
 
-            foreach (var model in arg)
-                await candleRepo.Create(Mapper.Map<Candle>(model));
+            var candles = arg.Select(Mapper.Map<Candle>);
+
+            await candleRepo.CreateAsync(candles);
             
-            _logger.Log(LogLevel.Debug, $"Inserting {arg.Length} candle records is complete");
+            _logger.Log(LogLevel.Information, $"Inserting {arg.Length} candle records is complete");
+        }
+
+        private DateTimeOffset CalculateStartTime(TimePeriod period, int dataPoints)
+        {
+            switch (period)
+            {
+                case TimePeriod.OneMinute:
+                    return DateTimeOffset.Now.AddMinutes(-dataPoints);
+                case TimePeriod.FiveMinutes:
+                    return DateTimeOffset.Now.AddMinutes(-dataPoints * 5);
+                case TimePeriod.FifteenMinutes:
+                    return DateTimeOffset.Now.AddMinutes(-dataPoints * 15);
+                case TimePeriod.OneHour:
+                    return DateTimeOffset.Now.AddHours(-dataPoints);
+                case TimePeriod.OneDay:
+                    return DateTimeOffset.Now.AddDays(-dataPoints);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(period), period, null);
+            }
         }
     }
 }

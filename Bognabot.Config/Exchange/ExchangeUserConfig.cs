@@ -1,23 +1,21 @@
 ﻿using Bognabot.Config.Core;
-using Bognabot.Storage.Core;
 
 namespace Bognabot.Config.Exchange
 {
-    public class ExchangeUserConfig : UserConfig
+    public class ExchangeUserConfig : IUserConfig
     {
-        public int HistoryDays { get; set; }
+        public string Filename => "exchange.json";
+        public string EncryptionKey => "moop";
 
-        public ExchangeSpecificUserConfig Bitmex { get; set; }
+        public string Key { get; private set; }
+        public string Secret { get; private set; }
+        public int MaxDataPoints { get; private set; }
 
-        public override void SetDefault()
+        public void SetDefault()
         {
-            HistoryDays = 7;
-
-            Bitmex = new ExchangeSpecificUserConfig
-            {
-                Key = "iiMc1cci1lNhyVpmrILHqCRY",
-                Secret = "nkj7IJuPVugn8kYmIqXQ093ho7Z8ccipeNbn6RTZrosnZCUh"
-            };
+            Key = "iiMc1cci1lNhyVpmrILHqCRY";
+            Secret = "nkj7IJuPVugn8kYmIqXQ093ho7Z8ccipeNbn6RTZrosnZCUh";
+            MaxDataPoints = 350;
         }
     }
 }

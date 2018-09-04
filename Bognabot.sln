@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Daemon", "Bognabot
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Bitmex", "Bognabot.Bitmex\Bognabot.Bitmex.csproj", "{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Jobs", "Bognabot.Jobs\Bognabot.Jobs.csproj", "{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Jobs", "Bognabot.Jobs\Bognabot.Jobs.csproj", "{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
