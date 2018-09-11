@@ -14,9 +14,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Bognabot.Config\Bognabot.Config.csproj" />
     <ProjectReference Include="..\Bognabot.Domain\Bognabot.Domain.csproj" />
-    <ProjectReference Include="..\Bognabot.Net\Bognabot.Net.csproj" />
+    <ProjectReference Include="..\Bognabot.Storage\Bognabot.Storage.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Config\general.live.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

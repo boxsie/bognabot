@@ -1,0 +1,5 @@
+﻿{
+  "AppName": "Bognabot",
+  "DbFilename": "bognabot.db",
+  "UserConfigFilename": "general.user.json"
+}

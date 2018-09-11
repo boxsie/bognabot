@@ -1,9 +1,9 @@
 ﻿using System.Threading.Tasks;
 
-namespace Bognabot.Jobs.Init
+namespace Bognabot.Jobs.Core
 {
-    public abstract class InitJob
+    public interface IFaFJob
     {
-        public abstract Task ExecuteAsync();
+        Task ExecuteAsync();
     }
 }

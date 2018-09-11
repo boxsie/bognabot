@@ -21,6 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Bognabot.Bitmex\Bognabot.Bitmex.csproj" />
+    <ProjectReference Include="..\Bognabot.Core\Bognabot.Core.csproj" />
     <ProjectReference Include="..\Bognabot.Data\Bognabot.Data.csproj" />
     <ProjectReference Include="..\Bognabot.Jobs\Bognabot.Jobs.csproj" />
   </ItemGroup>

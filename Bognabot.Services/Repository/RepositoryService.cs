@@ -1,0 +1,99 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Data.SQLite;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Bognabot.Data;
+using Bognabot.Data.Config;
+using Bognabot.Data.Config.Contracts;
+using Bognabot.Data.Exchange.Contracts;
+using Bognabot.Data.Exchange.Enums;
+using Bognabot.Data.Repository;
+using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Storage.Core;
+using Microsoft.Extensions.Logging;
+
+namespace Bognabot.Services.Repository
+{
+    public class RepositoryService
+    {
+        private readonly ILogger<RepositoryService> _logger;
+        private readonly GeneralConfig _generalConfig;
+
+        private List<string> _availableTables;
+
+        public RepositoryService(ILogger<RepositoryService> logger, GeneralConfig generalConfig, IEnumerable<IExchangeService> exchanges)
+        {
+            _logger = logger;
+            _generalConfig = generalConfig;
+            _availableTables = new List<string>();
+
+            EnsureDbCreated();
+            RegisterTableNames(exchanges.Select(x => x.ExchangeConfig).ToList());
+        }
+
+        public async Task<IRepository<Candle>> GetCandleRepositoryAsync(string exchangeName, Instrument instrument, TimePeriod period)
+        {
+            var repo = new Repository<Candle>(_logger);
+
+            var tableName = GetCandleTableName(exchangeName, instrument, period);
+
+            if (_availableTables.All(x => x != tableName))
+                throw new IndexOutOfRangeException();
+
+            await repo.LoadAsync(GetConnectionString(), GetCandleTableName(exchangeName, instrument, period));
+            
+            return repo;
+        }
+
+        private void EnsureDbCreated()
+        {
+            _logger.LogInformation($"Looking for database...");
+
+            var dbPath = StorageUtils.PathCombine(Cfg.UserDataPath, _generalConfig.DbFilename);
+
+            _logger.LogDebug($"Looking for database at {dbPath}");
+
+            if (File.Exists(dbPath))
+                return;
+
+            _logger.LogInformation($"Database not found, creating...");
+
+            SQLiteConnection.CreateFile(dbPath);
+
+            _logger.LogInformation($"Database created");
+        }
+
+        private void RegisterTableNames(IReadOnlyCollection<ExchangeConfig> exchangeConfigs)
+        {
+            _availableTables = new List<string>();
+
+            var instruments = Enum.GetValues(typeof(Instrument)).Cast<Instrument>();
+            var periods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>();
+            
+            foreach (var instrument in instruments)
+            {
+                foreach (var exchange in exchangeConfigs)
+                {
+                    var supportedPeriods = exchange.SupportedTimePeriods;
+
+                    foreach (var period in supportedPeriods)
+                    {
+                        _availableTables.Add(GetCandleTableName(exchange.ExchangeName, instrument, period.Key));
+                    }
+                }
+            }
+        }
+
+        private string GetConnectionString()
+        {
+            return $"Data Source={StorageUtils.PathCombine(Cfg.UserDataPath, _generalConfig.DbFilename)};";
+        }
+
+        private static string GetCandleTableName(string exchangeName, Instrument instrument, TimePeriod period)
+        {
+            return $"{exchangeName}_{instrument}_{period}_Candles";
+        }
+    }
+}

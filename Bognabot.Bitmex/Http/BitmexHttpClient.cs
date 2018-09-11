@@ -6,15 +6,12 @@ using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Http.Commands;
 using Bognabot.Bitmex.Http.Requests;
 using Bognabot.Bitmex.Socket;
-using Bognabot.Config;
-using Bognabot.Config.Core;
-using Bognabot.Config.Enums;
+using Bognabot.Data.Config;
 using Bognabot.Data.Exchange;
 using Bognabot.Net;
-using Bognabot.Net.Api;
+using Bognabot.Services.Exchange;
 using Bognabot.Storage.Core;
-using Microsoft.Extensions.Logging;
-using HttpMethod = Bognabot.Net.HttpMethod;
+using NLog;
 
 namespace Bognabot.Bitmex.Http
 {
@@ -24,9 +21,9 @@ namespace Bognabot.Bitmex.Http
 
         private readonly ExchangeConfig _config;
         
-        public BitmexHttpClient(ILogger<BitmexHttpClient> logger) : base(logger)
+        public BitmexHttpClient(ILogger logger, ExchangeConfig config) : base(logger)
         {
-            _config = Cfg.GetExchangeConfig(SupportedExchange.Bitmex);
+            _config = config;
 
             Commands = new Dictionary<Type, IHttpCommand>
             {

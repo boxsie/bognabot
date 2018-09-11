@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Bognabot.Config.Enums;
 using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Jobs.Core;
+using Bognabot.Services;
+using Bognabot.Services.Repository;
 using Microsoft.Extensions.Logging;
 
 namespace Bognabot.Jobs.Sync
@@ -23,7 +25,7 @@ namespace Bognabot.Jobs.Sync
         
         protected override async Task<string> ExecuteAsync()
         {
-            var candles = await _repositoryService.GetCandleRepository(SupportedExchange.Bitmex, Instrument.BTCUSD, TimePeriod.OneMinute);
+            //var candles = await _repositoryService.GetCandleRepositoryAsync(SupportedExchange.Bitmex, Instrument.BTCUSD, TimePeriod.OneMinute);
 
             
 

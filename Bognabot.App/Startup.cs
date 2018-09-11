@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
 using Bognabot.App.Hubs;
@@ -6,7 +8,10 @@ using Bognabot.Bitmex;
 using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Http;
 using Bognabot.Bitmex.Socket;
-using Bognabot.Config;
+using Bognabot.Core;
+using Bognabot.Data;
+using Bognabot.Data.Config;
+using Bognabot.Data.Config.Contracts;
 using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Mapping;
 using Bognabot.Data.Repository;
@@ -14,11 +19,12 @@ using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Jobs;
 using Bognabot.Jobs.Init;
 using Bognabot.Jobs.Sync;
+using Bognabot.Services;
+using Bognabot.Services.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Web;
 
@@ -28,41 +34,26 @@ namespace Bognabot.App
     {
         private readonly Logger _logger; 
         private readonly IHostingEnvironment _env;
-        private readonly IServiceProvider _serviceProvider;
 
-        public Startup(IHostingEnvironment env, IServiceProvider serviceProvider)
+        public Startup(IHostingEnvironment env)
         {
             _env = env;
-            _serviceProvider = serviceProvider;
 
             _logger = NLogBuilder.ConfigureNLog($"{_env.ContentRootPath}/nlog.config").GetCurrentClassLogger();
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<ILoggerFactory, LoggerFactory>();
-            services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
-            services.AddLogging();
+            services.AddSingleton<ILogger>((x) => _logger);
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             
             services.AddSignalR();
 
-            services.AddTransient<BitmexSocketClient>();
-            services.AddTransient<BitmexHttpClient>();
-            services.AddSingleton<IExchangeService, BitmexService>();
-
-            services.AddSingleton<RepositoryService>();
-            services.AddTransient<IRepository<Candle>, Repository<Candle>>();
-
-            services.AddSingleton<JobService>();
-            services.AddTransient<CandleSync>();
-            services.AddTransient<CandleCatchup>();
-
-            Cfg.AddServices(services);
+            AppInitialise.AddServices(services, new [] { typeof(BitmexService) });
         }
 
-        public void Configure(IApplicationBuilder app)
+        public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider)
         {
             if (_env.IsDevelopment())
             {
@@ -89,22 +80,17 @@ namespace Bognabot.App
                 routes.MapHub<StreamHub>("/streamhub");
             });
 
-            Mapper.Initialize(cfg =>
-            {
-                cfg.AddProfile<DataProfile>();
-                cfg.AddProfile<BitmexProfile>();
-            });
-            
-            Task.Run(ConfigureApp);
+            ConfigureApp(serviceProvider);
         }
 
-        private async Task ConfigureApp()
+        private void ConfigureApp(IServiceProvider serviceProvider)
         {
-            await Cfg.LoadUserDataAsync(_serviceProvider, _env.ContentRootPath);
+            AppInitialise.LoadUserData(serviceProvider, _env.ContentRootPath);
 
-            await _serviceProvider.GetService<JobService>().RunAsync();
+            var js = serviceProvider.GetService<JobService>();
 
-            await ElectronBootstrap.InitAsync();
+            Task.Run(js.RunAsync);
+            Task.Run(ElectronBootstrap.InitAsync);
         }
     }
 }

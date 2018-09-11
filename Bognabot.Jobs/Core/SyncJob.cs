@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 
-namespace Bognabot.Jobs.Sync
+namespace Bognabot.Jobs.Core
 {
     [DisallowConcurrentExecution]
     public abstract class SyncJob : IJob

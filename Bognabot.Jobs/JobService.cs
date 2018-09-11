@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Bognabot.Jobs.Core;
 using Bognabot.Jobs.Init;
 using Bognabot.Jobs.Sync;
-using Microsoft.Extensions.Logging;
+using NLog;
 using Quartz;
 using Quartz.Impl;
 
@@ -14,9 +14,9 @@ namespace Bognabot.Jobs
     public class JobService
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly ILogger<JobService> _logger;
+        private readonly ILogger _logger;
 
-        public JobService(IServiceProvider serviceProvider, ILogger<JobService> logger)
+        public JobService(IServiceProvider serviceProvider, ILogger logger)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
@@ -30,14 +30,23 @@ namespace Bognabot.Jobs
 
         private async Task RunInitJobs()
         {
-            var jobTypes = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsSubclassOf(typeof(InitJob)));
-
-            foreach(var jt in jobTypes)
+            try
             {
-                var jobInstance = (InitJob)_serviceProvider.GetService(jt);
+                var jobTypes = Assembly.GetExecutingAssembly().GetTypes().Where(x => !x.IsInterface && typeof(IFaFJob).IsAssignableFrom(x));
 
-                await jobInstance.ExecuteAsync();
+                foreach (var jt in jobTypes)
+                {
+                    var jobInstance = (IFaFJob)_serviceProvider.GetService(jt);
+
+                    await jobInstance.ExecuteAsync();
+                }
             }
+            catch (Exception e)
+            {
+                _logger.Log(LogLevel.Error, e);
+                throw;
+            }
+            
         }
 
         private async Task RunSyncJobs()

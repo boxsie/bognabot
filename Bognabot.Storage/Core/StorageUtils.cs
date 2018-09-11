@@ -12,9 +12,10 @@ namespace Bognabot.Storage.Core
 {
     public static class StorageUtils
     {
+        private const string UserDataDirName = "Bognabot";
         private const string EncryptKeyBase = "E546C8DF278CD5931069B522E695D4F2";
 
-        public static string GetDefaultUserDataPath(string appName)
+        public static string GetDefaultUserDataPath()
         {
             var path = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Environment.GetEnvironmentVariable("LocalAppData")
@@ -22,17 +23,17 @@ namespace Bognabot.Storage.Core
                     ? $"~/Library/Application Support/"
                     : $"Home/";
 
-            return StorageUtils.PathCombine(path, appName, true);
+            return $"{StorageUtils.PathCombine(path, UserDataDirName)}{Path.DirectorySeparatorChar}";
         }
 
-        public static string PathCombine(string first, string second, bool trailing = false)
+        public static string PathCombine(params string[] parts)
         {
             var pathSeperator = Path.DirectorySeparatorChar;
 
-            var path = Path.Combine(first, second).Replace(pathSeperator == '/' ? '\\' : '/', pathSeperator);
+            var path = parts[0];
 
-            if (trailing)
-                path += pathSeperator;
+            for (var i = 1; i < parts.Length; i++)
+                path = Path.Combine(path, parts[i]).Replace(pathSeperator == '/' ? '\\' : '/', pathSeperator);
 
             return path;
         }

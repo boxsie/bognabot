@@ -2,7 +2,8 @@
 using System.Linq;
 using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Socket.Responses;
-using Bognabot.Net.Api;
+using Bognabot.Data.Exchange;
+using Bognabot.Net;
 using Newtonsoft.Json;
 
 namespace Bognabot.Bitmex.Socket

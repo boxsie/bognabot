@@ -1,4 +1,4 @@
-﻿using Bognabot.Net.Api;
+﻿using Bognabot.Data.Exchange;
 using Newtonsoft.Json;
 
 namespace Bognabot.Bitmex.Http.Requests

@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Text;
 using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Socket.Responses;
-using Bognabot.Config;
-using Bognabot.Config.Core;
-using Bognabot.Config.Enums;
+using Bognabot.Data.Config;
 using Bognabot.Data.Exchange;
-using Bognabot.Net.Api;
+using Bognabot.Net;
+using Bognabot.Services.Exchange;
 using Bognabot.Storage.Core;
 using Newtonsoft.Json.Linq;
+using NLog;
 
 namespace Bognabot.Bitmex.Socket
 {
@@ -20,9 +20,9 @@ namespace Bognabot.Bitmex.Socket
 
         private readonly ExchangeConfig _config;
         
-        public BitmexSocketClient()
+        public BitmexSocketClient(ILogger logger, ExchangeConfig config)
         {
-            _config = Cfg.GetExchangeConfig(SupportedExchange.Bitmex);
+            _config = config;
 
             DataUri = new Uri(_config.WebSocketUrl);
 

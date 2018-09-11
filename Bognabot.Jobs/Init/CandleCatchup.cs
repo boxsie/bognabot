@@ -4,56 +4,53 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
-using Bognabot.Config;
-using Bognabot.Config.Enums;
 using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Contracts;
+using Bognabot.Data.Exchange.Enums;
 using Bognabot.Data.Models.Exchange;
 using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Jobs.Core;
 using Bognabot.Jobs.Sync;
-using Microsoft.Extensions.Logging;
+using Bognabot.Services;
+using Bognabot.Services.Repository;
+using NLog;
 
 namespace Bognabot.Jobs.Init
 {
-    public class CandleCatchup : InitJob
+    public class CandleCatchup : IFaFJob
     {
-        private readonly ILogger<CandleCatchup> _logger;
+        private readonly ILogger _logger;
         private readonly RepositoryService _repoService;
         private readonly IEnumerable<IExchangeService> _exchangeServices;
 
-        public CandleCatchup(ILogger<CandleCatchup> logger, RepositoryService repoService, IEnumerable<IExchangeService> exchangeServices)
+        public CandleCatchup(ILogger logger, RepositoryService repoService, IEnumerable<IExchangeService> exchangeServices)
         {
             _logger = logger;
             _repoService = repoService;
             _exchangeServices = exchangeServices;
         }
 
-        public override async Task ExecuteAsync()
+        public async Task ExecuteAsync()
         {
             var instruments = Enum.GetValues(typeof(Instrument)).Cast<Instrument>();
             var periods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>();
 
             foreach (var instrument in instruments)
             {
-                var supportedExchanges = Cfg.GetExchangeConfigs();
-
-                foreach (var exchange in supportedExchanges)
+                foreach (var exchange in _exchangeServices)
                 {
-                    var exchangeService = _exchangeServices.FirstOrDefault(x => x.Exchange == exchange.Exchange);
-
-                    if (exchangeService == null)
-                        continue;
-
-                    var supportedPeriods = exchange.SupportedTimePeriods;
+                    var supportedPeriods = exchange.ExchangeConfig.SupportedTimePeriods;
 
                     foreach (var period in supportedPeriods)
-                        await exchangeService.GetCandlesAsync(
+                    {
+                        await exchange.GetCandlesAsync(
                             instrument,
-                            period.Key, 
-                            CalculateStartTime(period.Key, exchange.UserConfig.MaxDataPoints),
-                            DateTimeOffset.Now, 
+                            period.Key,
+                            CalculateStartTime(period.Key, exchange.ExchangeConfig.UserConfig.MaxDataPoints),
+                            DateTimeOffset.Now,
                             OnRecieve);
+                    }
                 }
             }
         }
@@ -65,7 +62,7 @@ namespace Bognabot.Jobs.Init
 
             var first = arg.First();
 
-            var candleRepo = await _repoService.GetCandleRepository(first.Exchange, first.Instrument, first.Period);
+            var candleRepo = await _repoService.GetCandleRepositoryAsync(first.ExchangeName, first.Instrument, first.Period);
 
             _logger.Log(LogLevel.Debug, $"Inserting {arg.Length} candle records");
 
@@ -73,7 +70,7 @@ namespace Bognabot.Jobs.Init
 
             await candleRepo.CreateAsync(candles);
             
-            _logger.Log(LogLevel.Information, $"Inserting {arg.Length} candle records is complete");
+            _logger.Log(LogLevel.Info, $"Inserting {arg.Length} candle records is complete");
         }
 
         private DateTimeOffset CalculateStartTime(TimePeriod period, int dataPoints)

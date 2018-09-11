@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bognabot.Data\Bognabot.Data.csproj" />
+    <ProjectReference Include="..\Bognabot.Jobs\Bognabot.Jobs.csproj" />
+    <ProjectReference Include="..\Bognabot.Services\Bognabot.Services.csproj" />
+    <ProjectReference Include="..\Bognabot.Storage\Bognabot.Storage.csproj" />
+  </ItemGroup>
+
+</Project>

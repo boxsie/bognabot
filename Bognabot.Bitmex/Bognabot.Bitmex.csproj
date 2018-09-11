@@ -10,8 +10,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Bognabot.Config\Bognabot.Config.csproj" />
     <ProjectReference Include="..\Bognabot.Data\Bognabot.Data.csproj" />
+    <ProjectReference Include="..\Bognabot.Services\Bognabot.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Config\bitmex.debug.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Config\bitmex.live.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

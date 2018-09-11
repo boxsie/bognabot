@@ -5,10 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Bognabot.Config.Core;
-using Bognabot.Config.Enums;
-using Bognabot.Config.General;
-using Bognabot.Config.Storage;
+using Bognabot.Config;
+using Bognabot.Config.Models;
+using Bognabot.Data.Config;
+using Bognabot.Data.Exchange.Contracts;
+using Bognabot.Storage.Core;
 using Bognabot.Storage.Stores;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -27,7 +28,6 @@ namespace Bognabot.Config
         private const string LiveFileExt = ".live.json";
 
         private static Dictionary<Type, IConfig> _configs;
-        private static Dictionary<SupportedExchange, ExchangeConfig> _exchangeConfigs;
 
         static Cfg()
         {
@@ -39,24 +39,37 @@ namespace Bognabot.Config
             Logger = NLog.LogManager.GetCurrentClassLogger();
 
             _configs = new Dictionary<Type, IConfig>();
-            _exchangeConfigs = new Dictionary<SupportedExchange, ExchangeConfig>();
         }
 
-        public static void AddServices(IServiceCollection services)
+        public static void AddServices(IServiceCollection services, IEnumerable<Type> exchangeServiceTypes)
         {
-            AppDataPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            AppDataPath = StorageUtils.PathCombine(Path.GetDirectoryName(Assembly.GetCallingAssembly().Location), "Config");
 
             Logger.Log(LogLevel.Debug, $"Application data path set to {AppDataPath}");
+            
+            Logger.Log(LogLevel.Info, "Checking exchange services...");
 
-            services.AddSingleton<GeneralConfig>((x) => ConfigFactory<GeneralConfig>().GetAwaiter().GetResult());
-            services.AddSingleton<StorageConfig>((x) => ConfigFactory<StorageConfig>().GetAwaiter().GetResult());
-            services.AddSingleton<IEnumerable<ExchangeConfig>>((x) => ConfigCollectionFactory<ExchangeConfig>().GetAwaiter().GetResult());
+            var contractType = typeof(IExchangeService);
+
+            foreach (var exchType in exchangeServiceTypes)
+            {
+                var exchName = exchType.Name.Replace("Service", "");
+
+                if (!contractType.IsAssignableFrom(exchType))
+                    Logger.Log(LogLevel.Warn, $"{exchType} exchange service does not derive from {contractType} and will not be loaded");
+
+                services.AddSingleton(contractType, service => ExchangeServiceFactory(service, exchType, exchName));
+
+                Logger.Log(LogLevel.Info, $"Found {exchName} exchange");
+            }
+            
+            services.AddSingleton<IConfig, GeneralConfig>((x) => ConfigFactory<GeneralConfig>().GetAwaiter().GetResult());
+            services.AddSingleton<IConfig, StorageConfig>((x) => ConfigFactory<StorageConfig>().GetAwaiter().GetResult());
         }
 
-        public static async Task LoadUserDataAsync(IServiceProvider serviceProvider, string appRootPath)
+        public static async Task LoadUserDataAsync(IEnumerable<IConfig> appConfigs, string appRootPath)
         {
-            _configs = serviceProvider.GetServices<IConfig>().ToDictionary(x => x.GetType());
-            _exchangeConfigs = serviceProvider.GetService<IEnumerable<ExchangeConfig>>().ToDictionary(x => x.Exchange);
+            _configs = appConfigs.ToDictionary(x => x.GetType());
 
             Logger.Log(LogLevel.Info, "Loading user data...");
 
@@ -96,19 +109,14 @@ namespace Bognabot.Config
             return default(T);
         }
 
-        public static ExchangeConfig GetExchangeConfig(SupportedExchange exchange)
+        private static object ExchangeServiceFactory(IServiceProvider service, Type exchType, string exchName)
         {
-            if (_exchangeConfigs.ContainsKey(exchange))
-                return _exchangeConfigs[exchange];
+            var cfg = ConfigFactory<ExchangeConfig>(exchName.ToLower()).GetAwaiter().GetResult();
 
-            Logger.Log(LogLevel.Error, $"Unable to get {exchange}");
+            if (cfg == null || !string.Equals(cfg.ExchangeName, exchName, StringComparison.CurrentCultureIgnoreCase))
+                Logger.Log(LogLevel.Warn, $"Cannot locate the config for {exchType.Name}");
 
-            return null;
-        }
-
-        public static IEnumerable<ExchangeConfig> GetExchangeConfigs()
-        {
-            return _exchangeConfigs.Values;
+            return Activator.CreateInstance(exchType, new object[] { service.GetService<ILogger>(), cfg });
         }
 
         private static async Task<T> ConfigFactory<T>(string name = null) where T : IConfig
@@ -135,63 +143,18 @@ namespace Bognabot.Config
             }
         }
 
-        private static async Task<IEnumerable<T>> ConfigCollectionFactory<T>() where T : IConfig
-        {
-            var configName = typeof(T).Name.Replace("Config", "");
-
-            try
-            {
-                var jsonCol = await GetConfigCollectionJson(configName);
-
-                var configs = jsonCol.Select(JsonConvert.DeserializeObject<T>);
-
-                Logger.Log(LogLevel.Info, $"{configName} application data load complete");
-
-                return configs;
-            }
-            catch (Exception e)
-            {
-                Logger.Log(LogLevel.Fatal, $"Unable to load {configName} application data");
-                Logger.Log(LogLevel.Fatal, e.Message);
-                Logger.Log(LogLevel.Fatal, e.StackTrace);
-
-                throw;
-            }
-        }
-
         private static async Task<string> GetConfigJson(string configName)
         {
             using (var store = new TextStore())
             {
-                var pathBase = $"{GetConfigBasePath(configName)}{configName.ToLower()}";
+                var cfgName = configName.ToLower();
 
-                var pathFileExt = IsDebug && File.Exists($"{pathBase}{DebugFileExt}") ? DebugFileExt : LiveFileExt;
+                var pathFileExt = IsDebug && File.Exists(StorageUtils.PathCombine(AppDataPath, $"{cfgName}{DebugFileExt}")) ? DebugFileExt : LiveFileExt;
 
-                var json = await store.ReadAsync($"{pathBase}{pathFileExt}");
+                var json = await store.ReadAsync(StorageUtils.PathCombine(AppDataPath, $"{cfgName}{pathFileExt}"));
 
                 return json;
             }
-        }
-
-        private static async Task<List<string>> GetConfigCollectionJson(string configName)
-        {
-            using (var store = new TextStore())
-            {
-                var jsonCol = new List<string>();
-
-                var configFiles = Directory.GetFiles(GetConfigBasePath(configName))
-                    .Where(x => IsDebug && x.Contains(DebugFileExt) || x.Contains(LiveFileExt));
-
-                foreach (var configFile in configFiles)
-                    jsonCol.Add(await store.ReadAsync(configFile));
-
-                return jsonCol;
-            }
-        }
-
-        private static string GetConfigBasePath(string configName)
-        {
-            return $"{AppDataPath}\\{configName}\\";
         }
     }
 }

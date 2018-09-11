@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Http.Requests;
-using Bognabot.Net.Api;
+using Bognabot.Data.Exchange;
+using Bognabot.Net;
 
 namespace Bognabot.Bitmex.Http.Commands
 {

@@ -9,45 +9,57 @@ using Bognabot.Bitmex.Http.Requests;
 using Bognabot.Bitmex.Http.Responses;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Bitmex.Socket.Responses;
-using Bognabot.Config;
-using Bognabot.Config.Core;
-using Bognabot.Config.Enums;
+using Bognabot.Data.Config;
 using Bognabot.Data.Exchange;
-using Bognabot.Data.Exchange.Contracts;
+using Bognabot.Data.Exchange.Enums;
 using Bognabot.Data.Models.Exchange;
 using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Services.Exchange;
+using NLog;
 
 namespace Bognabot.Bitmex
 {
-    public class BitmexService : IExchangeService
-    {
-        public SupportedExchange Exchange => SupportedExchange.Bitmex;
-        public DateTimeOffset Now => BitmexUtils.Now();
+    public class BitmexService : BaseExchangeService
+{
+        public override DateTimeOffset Now => BitmexUtils.Now();
 
-        public event Func<TradeModel[], Task> OnTradeReceived;
-        public event Func<BookModel[], Task> OnBookReceived;
+        public override event Func<TradeModel[], Task> OnTradeReceived;
+        public override event Func<BookModel[], Task> OnBookReceived;
 
         private readonly BitmexSocketClient _bitmexSocketClient;
         private readonly BitmexHttpClient _bitmexHttpClient;
-        private readonly ExchangeConfig _config;
 
-        public BitmexService(BitmexSocketClient bitmexSocketClient, BitmexHttpClient bitmexHttpClient)
+        public BitmexService(ILogger logger, ExchangeConfig config) : base(config)
         {
-            _bitmexSocketClient = bitmexSocketClient;
-            _bitmexHttpClient = bitmexHttpClient;
-            
-            _config = Cfg.GetExchangeConfig(SupportedExchange.Bitmex);
+            _bitmexSocketClient = new BitmexSocketClient(logger, config);
+            _bitmexHttpClient = new BitmexHttpClient(logger, config);
         }
 
-        public async Task SubscribeToStreams()
+        public override void ConfigureMap(IMapperConfigurationExpression cfg)
+        {
+            cfg.CreateMap<TradeCommandResponse, CandleModel>()
+                .ForMember(d => d.ExchangeName, o => o.MapFrom(s => ExchangeConfig.ExchangeName))
+                .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
+                .ForMember(d => d.Period, o => o.Ignore());
+
+            cfg.CreateMap<TradeSocketResponse, TradeModel>()
+                .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
+                .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)));
+
+            cfg.CreateMap<BookSocketResponse, BookModel>()
+                .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
+                .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)));
+        }
+
+        public override async Task SubscribeToStreams()
         {
             await _bitmexSocketClient.ConnectAsync();
 
-            await _bitmexSocketClient.SubscribeAsync<TradeSocketResponse>(OnReceiveTrade, BitmexUtils.ToSymbol(Instrument.BTCUSD));
-            await _bitmexSocketClient.SubscribeAsync<BookSocketResponse>(OnReceiveBook, BitmexUtils.ToSymbol(Instrument.BTCUSD));
+            await _bitmexSocketClient.SubscribeAsync<TradeSocketResponse>(OnReceiveTrade, ToSymbol(Instrument.BTCUSD));
+            await _bitmexSocketClient.SubscribeAsync<BookSocketResponse>(OnReceiveBook, ToSymbol(Instrument.BTCUSD));
         }
 
-        public async Task GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve)
+        public override async Task GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve)
         {
             var stopwatch = new Stopwatch();
             var total = 0;
@@ -56,11 +68,11 @@ namespace Bognabot.Bitmex
             var request = new TradeCommandRequest
             {
                 IsAuth = true,
-                Path = _config.CandlePath,
-                Symbol = BitmexUtils.ToSymbol(instrument),
+                Path = ExchangeConfig.CandlePath,
+                Symbol = ToSymbol(instrument),
                 StartAt = 0,
                 Count = 750,
-                TimeInterval = timePeriod.ToBitmexTimePeriod(),
+                TimeInterval = ToTimePeriod(timePeriod),
                 StartTime = startTime.ToUtcTimeString(),
                 EndTime = endTime.ToUtcTimeString(),
             };

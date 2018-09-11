@@ -16,22 +16,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Bognabot.Data\Bognabot.Data.csproj" />
     <ProjectReference Include="..\Bognabot.Storage\Bognabot.Storage.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Exchange\exchange.live.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Exchange\exchange.debug.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="General\general.live.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Storage\storage.live.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <Folder Include="Config\" />
   </ItemGroup>
 
 </Project>
