@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
-using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Http.Commands;
 using Bognabot.Bitmex.Http.Requests;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Data.Config;
 using Bognabot.Data.Exchange;
-using Bognabot.Net;
 using Bognabot.Services.Exchange;
 using Bognabot.Storage.Core;
 using NLog;

@@ -1,6 +1,6 @@
 ﻿{
   "ExchangeName": "Bitmex",
-  "UserConfigFilename": "bitmex.user.debug.json",
+  "UserConfigFilename": "bitmex.user.live.json",
   "WebSocketUrl": "wss://testnet.bitmex.com/realtime",
   "RestUrl": "https://testnet.bitmex.com/api/v1",
   "SupportedInstruments": {
@@ -12,7 +12,8 @@
     "OneHour": "1h",
     "OneDay": "1d"
   },
-  "TradePath": "trade",
-  "BookPath": "orderBookL2",
-  "CandlePath": "/trade/bucketed"
+  "TradePathWebSocket": "trade",
+  "BookPathWebSocket": "orderBookL2",
+  "CandlePathWebSocket": "tradeBin",
+  "CandlePathRest": "/trade/bucketed"
 }

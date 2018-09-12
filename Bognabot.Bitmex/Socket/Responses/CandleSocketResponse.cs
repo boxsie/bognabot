@@ -2,9 +2,9 @@
 using Bognabot.Data.Exchange;
 using Newtonsoft.Json;
 
-namespace Bognabot.Bitmex.Http.Responses
+namespace Bognabot.Bitmex.Socket.Responses
 {
-    public class TradeCommandResponse : CommandResponse
+    public class CandleSocketResponse : SocketResponse
     {
         [JsonProperty("timestamp")]
         public DateTimeOffset Timestamp { get; set; }

@@ -14,7 +14,6 @@ using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Jobs;
 using Bognabot.Jobs.Core;
-using Bognabot.Jobs.Init;
 using Bognabot.Jobs.Sync;
 using Bognabot.Services.Repository;
 using Bognabot.Storage.Core;
@@ -60,7 +59,6 @@ namespace Bognabot.Core
 
             services.AddSingleton<JobService>();
             services.AddTransient<CandleSync>();
-            services.AddTransient<CandleCatchup>();
         }
 
         public static void LoadUserData(IServiceProvider serviceProvider, string appRootPath)

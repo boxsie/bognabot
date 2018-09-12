@@ -33,7 +33,7 @@ namespace Bognabot.Services.Repository
             RegisterTableNames(exchanges.Select(x => x.ExchangeConfig).ToList());
         }
 
-        public async Task<IRepository<Candle>> GetCandleRepositoryAsync(string exchangeName, Instrument instrument, TimePeriod period)
+        public async Task<Repository<Candle>> GetCandleRepositoryAsync(string exchangeName, Instrument instrument, TimePeriod period)
         {
             var repo = new Repository<Candle>(_logger);
 
@@ -42,7 +42,7 @@ namespace Bognabot.Services.Repository
             if (_availableTables.All(x => x != tableName))
                 throw new IndexOutOfRangeException();
 
-            await repo.LoadAsync(GetConnectionString(), GetCandleTableName(exchangeName, instrument, period));
+            await repo.CreateTable(GetConnectionString(), GetCandleTableName(exchangeName, instrument, period));
             
             return repo;
         }

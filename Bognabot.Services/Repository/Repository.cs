@@ -4,15 +4,19 @@ using System.Data.SQLite;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using AutoMapper;
 using Bognabot.Data.Repository;
+using Bognabot.Domain.Entities;
+using Bognabot.Domain.Entities.Instruments;
 using Dapper;
 using Microsoft.Extensions.Logging;
 
 namespace Bognabot.Services.Repository
 {
-    public class Repository<T> : IRepository<T>
+    public class Repository<T> : IRepository<T> where T : IEntity
     {
         private readonly ILogger _logger;
         private readonly Stopwatch _stopwatch;
@@ -26,7 +30,7 @@ namespace Bognabot.Services.Repository
             _stopwatch = new Stopwatch();
         }
 
-        public async Task LoadAsync(string connectionString, string tableName)
+        public async Task CreateTable(string connectionString, string tableName)
         {
             _connectionString = connectionString;
             _tableName = tableName;
@@ -103,7 +107,7 @@ namespace Bognabot.Services.Repository
             }
         }
 
-        public async Task<T> GetLastEntry()
+        public async Task<T> GetLastEntryAsync()
         {
             var sql = $"SELECT * FROM {_tableName} WHERE ROWID = (SELECT MAX(ROWID) FROM '{_tableName}');";
 
@@ -113,7 +117,7 @@ namespace Bognabot.Services.Repository
                 {
                     await con.OpenAsync();
 
-                    var result = await con.QueryAsync(sql);
+                    var result = (await con.QueryAsync(sql)).Select(Mapper.Map<T>);
 
                     return result.FirstOrDefault();
                 }
@@ -125,11 +129,12 @@ namespace Bognabot.Services.Repository
             }
         }
 
-        private DynamicParameters CreateParams(T entity)
+        private static DynamicParameters CreateParams(T entity)
         {
+            var props = GetProps(typeof(T));
             var dp = new DynamicParameters();
 
-            foreach (var prop in typeof(T).GetProperties())
+            foreach (var prop in props)
                 dp.Add(prop.Name, prop.GetValue(entity));
 
             return dp;
@@ -137,8 +142,7 @@ namespace Bognabot.Services.Repository
 
         private string BuildInsertSql()
         {
-            var type = typeof(T);
-            var props = type.GetProperties().ToList();
+            var props = GetProps(typeof(T));
             var sb = new StringBuilder();
             
             sb.Append($"INSERT INTO {_tableName} (");
@@ -152,8 +156,7 @@ namespace Bognabot.Services.Repository
 
         private string BuildCreateSql()
         {
-            var type = typeof(T);
-            var props = type.GetProperties();
+            var props = GetProps(typeof(T));
             var sb = new StringBuilder();
 
             sb.Append($"CREATE TABLE IF NOT EXISTS {_tableName}(");
@@ -182,6 +185,18 @@ namespace Bognabot.Services.Repository
                 default:
                     throw new NotSupportedException();
             }
+        }
+
+        private static List<PropertyInfo> GetProps(Type type)
+        {
+            return type.GetProperties().Where(x => !IgnoreProperty(x)).ToList();
+        }
+
+        private static bool IgnoreProperty(ICustomAttributeProvider target)
+        {
+            var attribs = target.GetCustomAttributes(typeof(IgnoreDataMemberAttribute), false);
+
+            return attribs.Length > 0;
         }
     }
 }

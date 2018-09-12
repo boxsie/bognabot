@@ -1,4 +1,4 @@
-﻿namespace Bognabot.Net
+﻿namespace Bognabot.Data.Exchange.Enums
 {
     public enum HttpMethod
     {

@@ -2,20 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using Bognabot.Data.Exchange.Enums;
-using Bognabot.Data.Models.Exchange;
-using Bognabot.Domain.Entities.Instruments;
-using Bognabot.Storage.Core;
 using Newtonsoft.Json;
 
-namespace Bognabot.Bitmex.Core
+namespace Bognabot.Bitmex
 {
     public static class BitmexUtils
     {
         public static DateTimeOffset Now()
         {
-            return DateTimeOffset.Now;
+            return DateTimeOffset.UtcNow;
         }
 
         public static long NowSeconds()

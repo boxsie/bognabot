@@ -1,4 +1,4 @@
-﻿namespace Bognabot.Data.Exchange
+﻿namespace Bognabot.Data.Exchange.Contracts
 {
     public interface ISocketChannel
     {

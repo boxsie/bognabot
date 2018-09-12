@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace Bognabot.Domain.Entities.Instruments
 {
-    public class Candle
+    public class Candle : IEntity
     {
         public double High { get; set; }
         public double Low { get; set; }
@@ -10,6 +11,9 @@ namespace Bognabot.Domain.Entities.Instruments
         public double Close { get; set; }
         public double Volume { get; set; }
         public double Trades { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
+        public string Timestamp { get; set; }
+
+        [IgnoreDataMember]
+        public DateTimeOffset TimestampOffset => DateTimeOffset.Parse(Timestamp);
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Bognabot.Bitmex;
-using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Http;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Core;

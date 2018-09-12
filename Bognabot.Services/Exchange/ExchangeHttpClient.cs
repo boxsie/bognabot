@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Bognabot.Data.Exchange;
-using Bognabot.Net;
 using Newtonsoft.Json;
 using NLog;
 
@@ -43,7 +42,7 @@ namespace Bognabot.Services.Exchange
                 var response = await client.GetAsync(queryUri);
 
                 _logger.Log(LogLevel.Debug, $"{request.HttpMethod} {request.GetType().Name} {queryUri}");
-                _logger.Log(response.IsSuccessStatusCode ? LogLevel.Info : LogLevel.Error, $"{request.HttpMethod} {request.GetType().Name} {response.ReasonPhrase}");
+                _logger.Log(response.IsSuccessStatusCode ? LogLevel.Debug : LogLevel.Error, $"{request.HttpMethod} {request.GetType().Name} {response.ReasonPhrase}");
 
                 if (!response.IsSuccessStatusCode)
                     return null;

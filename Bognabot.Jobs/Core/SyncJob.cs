@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using NLog;
 using Quartz;
 
 namespace Bognabot.Jobs.Core
@@ -10,24 +10,35 @@ namespace Bognabot.Jobs.Core
     public abstract class SyncJob : IJob
     {
         public string Name => GetType().Name;
+
         public Action<SimpleScheduleBuilder> Schedule => x => x.WithIntervalInSeconds(_intervalSeconds).RepeatForever();
 
         protected readonly ILogger Logger;
-        private readonly int _intervalSeconds;
 
-        protected SyncJob(ILogger logger, int intervalSeconds)
+        private readonly int _intervalSeconds;
+        private readonly DateTime? _startTime;
+
+        protected abstract Task ExecuteAsync();
+
+        protected SyncJob(ILogger logger, int intervalSeconds, DateTime? startTime = null)
         {
             Logger = logger;
             _intervalSeconds = intervalSeconds == 0 ? 30 : intervalSeconds;
+            _startTime = startTime;
         }
 
-        protected abstract Task<string> ExecuteAsync();
+        public IJobDetail GetJob(Type jobType)
+        {
+            return JobBuilder.Create(jobType)
+                .WithIdentity($"{Name}_Job")
+                .Build();
+        }
 
         public ITrigger GetTrigger()
         {
             return TriggerBuilder.Create()
-                .WithIdentity(Name)
-                .StartNow()
+                .WithIdentity($"{Name}_Trigger")
+                .StartAt(_startTime ?? DateTime.Now)
                 .WithSimpleSchedule(Schedule)
                 .Build();
         }
@@ -36,19 +47,18 @@ namespace Bognabot.Jobs.Core
         {
             try
             {
-                var stopwatch = new Stopwatch();
-                stopwatch.Start();
-
-                var result = await ExecuteAsync();
-
-                if (result != null)
-                    Logger.LogInformation($"{stopwatch.Elapsed} - {result}");
+                await ExecuteAsync();
             }
             catch (Exception ex)
             {
-                Logger.LogError($"{ex.Message}\r\n{ex.InnerException}");
-                Logger.LogError(string.Join("\r\n", ex.StackTrace));
+                Logger.Log(LogLevel.Error, $"{ex.Message}\r\n{ex.InnerException}");
+                Logger.Log(LogLevel.Error, string.Join("\r\n", ex.StackTrace));
             }
+        }
+
+        protected static DateTime RoundUp(DateTime dt, TimeSpan d)
+        {
+            return new DateTime((dt.Ticks + d.Ticks - 1) / d.Ticks * d.Ticks, dt.Kind);
         }
     }
 }

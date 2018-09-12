@@ -1,6 +1,5 @@
 ﻿using System;
 using Bognabot.Data.Exchange;
-using Bognabot.Net;
 using Newtonsoft.Json;
 
 namespace Bognabot.Bitmex.Socket.Responses

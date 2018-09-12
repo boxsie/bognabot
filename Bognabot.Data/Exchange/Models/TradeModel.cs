@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Bognabot.Data.Exchange.Enums;
-using Bognabot.Domain.Entities.Instruments;
 
-namespace Bognabot.Data.Models.Exchange
+namespace Bognabot.Data.Exchange.Models
 {
     public class TradeModel
     {

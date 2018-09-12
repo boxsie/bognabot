@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Bognabot.Bitmex.Core;
 using Bognabot.Bitmex.Socket.Responses;
 using Bognabot.Data.Config;
 using Bognabot.Data.Exchange;
-using Bognabot.Net;
+using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Services.Exchange;
 using Bognabot.Storage.Core;
 using Newtonsoft.Json.Linq;
@@ -16,21 +15,17 @@ namespace Bognabot.Bitmex.Socket
     public class BitmexSocketClient : ExchangeSocketClient
     {
         protected override Uri DataUri { get; }
-        protected override Dictionary<Type, ISocketChannel> Channels { get; }
+        protected override Dictionary<string, ISocketChannel> Channels { get; }
 
         private readonly ExchangeConfig _config;
         
-        public BitmexSocketClient(ILogger logger, ExchangeConfig config)
+        public BitmexSocketClient(ILogger logger, ExchangeConfig config, Dictionary<string, ISocketChannel> channels)
         {
             _config = config;
 
             DataUri = new Uri(_config.WebSocketUrl);
 
-            Channels = new Dictionary<Type, ISocketChannel>
-            {
-                { typeof(TradeSocketResponse), new SocketChannel<TradeSocketResponse>(_config.TradePath) },
-                { typeof(BookSocketResponse), new SocketChannel<BookSocketResponse>(_config.BookPath) }
-            };
+            Channels = channels;
         }
 
         protected override string GetAuthRequest()

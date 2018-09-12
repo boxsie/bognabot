@@ -6,15 +6,15 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Bognabot.Data.Exchange;
+using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Exchange.Enums;
-using Bognabot.Net;
 
 namespace Bognabot.Services.Exchange
 {
     public abstract class ExchangeSocketClient
     {
         protected abstract Uri DataUri { get; }
-        protected abstract Dictionary<Type, ISocketChannel> Channels { get; }
+        protected abstract Dictionary<string, ISocketChannel> Channels { get; }
         protected abstract string GetAuthRequest();
         protected abstract SocketResponse[] ParseResponseJson(string json);
 

@@ -12,7 +12,8 @@
     "OneHour": "1h",
     "OneDay": "1d"
   },
-  "TradePath": "trade",
-  "BookPath": "orderBookL2",
-  "CandlePath": "/trade/bucketed"
+  "TradePathWebSocket": "trade",
+  "BookPathWebSocket": "orderBookL2",
+  "CandlePathWebSocket": "tradeBin",
+  "CandlePathRest": "/trade/bucketed"
 }
