@@ -15,9 +15,11 @@ namespace Bognabot.Data.Exchange.Contracts
         
         void ConfigureMap(IMapperConfigurationExpression cfg);
         Task StartStreamingChannels();
-        Task SubscribeToTradeChannel(Func func);
-        Task SubscribeToBookChannel(Action<BookModel[]> onRecieve);
-        Task SubscribeToCandleChannel(TimePeriod period, Action<CandleModel[]> onRecieve);
+
+        Task SubscribeToTradeSocketAsync(Func<Task, TradeModel[]> onRecieve);
+        Task SubscribeToBookSocketAsync(Func<Task, BookModel[]> onRecieve);
+        Task SubscribeToCandleSocketAsync(TimePeriod period, Func<Task, CandleModel[]> onRecieve);
+
         Task GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve);
     }
 }

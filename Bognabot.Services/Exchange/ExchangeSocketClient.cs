@@ -11,6 +11,14 @@ using Bognabot.Data.Exchange.Enums;
 
 namespace Bognabot.Services.Exchange
 {
+    public interface IExchangeSocketClient
+    {
+        Task ConnectAsync();
+        Task SubscribeAsync<T>(Func<T[], Task> onReceive, params string[] args) where T : SocketResponse;
+        Task ListenAsync();
+        Task SendAsync(string message);
+    }
+
     public abstract class ExchangeSocketClient
     {
         protected abstract Uri DataUri { get; }

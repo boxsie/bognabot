@@ -21,25 +21,18 @@ using NLog;
 
 namespace Bognabot.Bitmex
 {
-    public class Func<Task, Action<
+    public class BitmexService : IExchangeService
     {
-        public Func(Action<TradeModel[]> onRecieve)
-        {
-            OnRecieve = onRecieve;
-        }
-
-        public Action<TradeModel[]> OnRecieve { get; private set; }
-    }
-
-    public class BitmexService : BaseExchangeService
-    {
-        public override DateTimeOffset Now => BitmexUtils.Now();
+        public ExchangeConfig ExchangeConfig { get; }
+        public DateTimeOffset Now => BitmexUtils.Now();
 
         private readonly BitmexSocketClient _bitmexSocketClient;
         private readonly BitmexHttpClient _bitmexHttpClient;
         
-        public BitmexService(ILogger logger, ExchangeConfig config) : base(config)
+        public BitmexService(ILogger logger, ExchangeConfig config)
         {
+            ExchangeConfig = config;
+
             var channels = new Dictionary<string, ISocketChannel>
             {
                 { config.TradePathWebSocket, new SocketChannel<TradeSocketResponse>(config.TradePathWebSocket) },
@@ -51,7 +44,7 @@ namespace Bognabot.Bitmex
             _bitmexHttpClient = new BitmexHttpClient(logger, config);
         }
 
-        public override void ConfigureMap(IMapperConfigurationExpression cfg)
+        public void ConfigureMap(IMapperConfigurationExpression cfg)
         {
             cfg.CreateMap<TradeCommandResponse, CandleModel>()
                 .ForMember(d => d.ExchangeName, o => o.MapFrom(s => ExchangeConfig.ExchangeName))
@@ -67,7 +60,7 @@ namespace Bognabot.Bitmex
                 .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)));
         }
 
-        public override async Task StartStreamingChannels()
+        public async Task StartStreamingChannels()
         {
             await _bitmexSocketClient.ConnectAsync();
 
@@ -76,21 +69,22 @@ namespace Bognabot.Bitmex
             await _bitmexSocketClient.SubscribeAsync<CandleSocketResponse>(OnReceiveCandle, ToSymbol(Instrument.BTCUSD));
         }
 
-        public override async Task SubscribeToTradeChannel(Func<Task, TradeModel[]> onReceivedAsync)
-        {
-        }
-
-        public override Task SubscribeToBookChannel(Action<BookModel[]> onRecieve)
+        public Task SubscribeToTradeSocketAsync(Func<Task, TradeModel[]> onRecieve)
         {
             throw new NotImplementedException();
         }
 
-        public override Task SubscribeToCandleChannel(TimePeriod period, Action<CandleModel[]> onRecieve)
+        public Task SubscribeToBookSocketAsync(Func<Task, BookModel[]> onRecieve)
         {
             throw new NotImplementedException();
         }
 
-        public override async Task GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve)
+        public Task SubscribeToCandleSocketAsync(TimePeriod period, Func<Task, CandleModel[]> onRecieve)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve)
         {
             var stopwatch = new Stopwatch();
             var total = 0;
@@ -167,6 +161,34 @@ namespace Bognabot.Bitmex
 
                 await OnCandleReceived.Invoke(models);
             }
+        }
+
+        private Instrument? ToInstrumentType(string symbol)
+        {
+            var instrumentKvp = ExchangeConfig.SupportedInstruments.FirstOrDefault(x => x.Value == symbol);
+
+            if (instrumentKvp.Value == null)
+                throw new ArgumentOutOfRangeException();
+
+            return instrumentKvp.Key;
+        }
+
+        private string ToSymbol(Instrument instrument)
+        {
+            var supportedInstruments = ExchangeConfig.SupportedInstruments;
+
+            return supportedInstruments.ContainsKey(instrument)
+                ? supportedInstruments[instrument]
+                : throw new ArgumentOutOfRangeException();
+        }
+
+        private string ToTimePeriod(TimePeriod period)
+        {
+            var supportedPeriods = ExchangeConfig.SupportedTimePeriods;
+
+            return supportedPeriods.ContainsKey(period)
+                ? supportedPeriods[period]
+                : throw new ArgumentOutOfRangeException();
         }
     }
 }
