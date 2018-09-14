@@ -15,4 +15,8 @@
     <ProjectReference Include="..\Bognabot.Services\Bognabot.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Sync\" />
+  </ItemGroup>
+
 </Project>

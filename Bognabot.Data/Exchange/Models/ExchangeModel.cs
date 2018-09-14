@@ -1,5 +1,6 @@
 ﻿using System;
 using Bognabot.Data.Exchange.Enums;
+using Newtonsoft.Json;
 
 namespace Bognabot.Data.Exchange.Models
 {

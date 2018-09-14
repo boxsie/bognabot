@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Bognabot.Data.Repository
+namespace Bognabot.Services.Repository
 {
     public interface IRepository<in T>
     {

@@ -4,19 +4,18 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using Bognabot.Bitmex.Http;
-using Bognabot.Bitmex.Http.Requests;
-using Bognabot.Bitmex.Http.Responses;
+using Bognabot.Bitmex.Request;
+using Bognabot.Bitmex.Response;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Bitmex.Socket.Responses;
 using Bognabot.Data.Config;
 using Bognabot.Data.Exchange;
-using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Data.Exchange.Models;
-using Bognabot.Data.Models.Exchange;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services.Exchange;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NLog;
 
 namespace Bognabot.Bitmex
@@ -26,74 +25,54 @@ namespace Bognabot.Bitmex
         public ExchangeConfig ExchangeConfig { get; }
         public DateTimeOffset Now => BitmexUtils.Now();
 
-        private readonly BitmexSocketClient _bitmexSocketClient;
-        private readonly BitmexHttpClient _bitmexHttpClient;
+        private readonly ILogger _logger;
+        private readonly IExchangeSocketClient _socketClient;
+        private readonly Dictionary<ExchangeChannel, List<IStreamSubscription>> _subscriptions;
         
         public BitmexService(ILogger logger, ExchangeConfig config)
         {
+            _logger = logger;
             ExchangeConfig = config;
 
-            var channels = new Dictionary<string, ISocketChannel>
-            {
-                { config.TradePathWebSocket, new SocketChannel<TradeSocketResponse>(config.TradePathWebSocket) },
-                { config.BookPathWebSocket, new SocketChannel<BookSocketResponse>(config.BookPathWebSocket) },
-                { $"{config.BookPathWebSocket}{ToTimePeriod(TimePeriod.OneMinute)}", new SocketChannel<CandleSocketResponse>(config.BookPathWebSocket) }
-            };
+            _socketClient = new ExchangeSocketClient(logger);
+            _subscriptions = new Dictionary<ExchangeChannel, List<IStreamSubscription>>();
+        }
 
-            _bitmexSocketClient = new BitmexSocketClient(logger, config, channels);
-            _bitmexHttpClient = new BitmexHttpClient(logger, config);
+        public Task ConnectAsync()
+        {
+            return _socketClient.ConnectAsync(ExchangeConfig.WebSocketUrl, OnSocketReceive);
         }
 
         public void ConfigureMap(IMapperConfigurationExpression cfg)
         {
-            cfg.CreateMap<TradeCommandResponse, CandleModel>()
+            cfg.CreateMap<CandleResponse, CandleModel>()
                 .ForMember(d => d.ExchangeName, o => o.MapFrom(s => ExchangeConfig.ExchangeName))
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
                 .ForMember(d => d.Period, o => o.Ignore());
 
-            cfg.CreateMap<TradeSocketResponse, TradeModel>()
+            cfg.CreateMap<TradeResponse, TradeModel>()
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
                 .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)));
 
-            cfg.CreateMap<BookSocketResponse, BookModel>()
+            cfg.CreateMap<BookResponse, BookModel>()
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
                 .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)));
         }
 
-        public async Task StartStreamingChannels()
+        public async Task SubscribeToStreamAsync<T>(ExchangeChannel channel, IStreamSubscription subscription) where T : ExchangeModel
         {
-            await _bitmexSocketClient.ConnectAsync();
+            if (!_subscriptions.ContainsKey(channel))
+                _subscriptions.Add(channel, new List<IStreamSubscription>());
 
-            await _bitmexSocketClient.SubscribeAsync<TradeSocketResponse>(OnReceiveTrade, ToSymbol(Instrument.BTCUSD));
-            await _bitmexSocketClient.SubscribeAsync<BookSocketResponse>(OnReceiveBook, ToSymbol(Instrument.BTCUSD));
-            await _bitmexSocketClient.SubscribeAsync<CandleSocketResponse>(OnReceiveCandle, ToSymbol(Instrument.BTCUSD));
+            _subscriptions[channel].Add(subscription);
+
+            await _socketClient.SubscribeAsync(GetSocketRequest(channel));
         }
 
-        public Task SubscribeToTradeSocketAsync(Func<Task, TradeModel[]> onRecieve)
+        public async Task<List<CandleModel>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task SubscribeToBookSocketAsync(Func<Task, BookModel[]> onRecieve)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task SubscribeToCandleSocketAsync(TimePeriod period, Func<Task, CandleModel[]> onRecieve)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime, Func<CandleModel[], Task> onRecieve)
-        {
-            var stopwatch = new Stopwatch();
-            var total = 0;
-            var count = 0;
-
-            var request = new TradeCommandRequest
+            var request = new CandleRequest
             {
-                IsAuth = true,
-                Path = ExchangeConfig.CandlePathRest,
                 Symbol = ToSymbol(instrument),
                 StartAt = 0,
                 Count = 750,
@@ -102,64 +81,104 @@ namespace Bognabot.Bitmex
                 EndTime = endTime.ToUtcTimeString(),
             };
 
-            do
+            var models = await GetAllAsync<CandleModel, CandleResponse, CandleRequest>(ExchangeConfig.SupportedRestChannels[ExchangeChannel.Candle], request);
+
+            foreach (var candleModel in models)
+                candleModel.Period = timePeriod;
+
+            return models;
+        }
+
+        private async Task<List<T>> GetAllAsync<T, TY, TTy>(string path, TTy request) where T : ExchangeModel where TTy : ICollectionRequest
+        {
+            var stopwatch = new Stopwatch();
+            var total = 0;
+            var count = 0;
+
+            var returnModels = new List<T>();
+
+            using (var client = new ExchangeHttpClient(ExchangeConfig.RestUrl))
             {
-                stopwatch.Restart();
-
-                total += count;
-
-                request.StartAt = total;
-
-                var candles = await _bitmexHttpClient.GetAsync<TradeCommandRequest, TradeCommandResponse>(request);
-
-                var candleModels = candles?.Select(Mapper.Map<CandleModel>).ToArray() ?? null;
-
-                if (candleModels != null)
+                do
                 {
+                    stopwatch.Restart();
+                    total += count;
+                    request.StartAt = total;
+
+                    var query = request.AsDictionary().BuildQueryString();
+                    
+                    var response = await client.GetAsync<TY>(path, query, 
+                        BitmexUtils.GetHttpAuthHeaders(ExchangeConfig.RestUrl, HttpMethod.GET, path, query, ExchangeConfig.UserConfig.Key, ExchangeConfig.UserConfig.Secret));
+
+                    if (response == null)
+                        throw new NullReferenceException();
+
+                    var models = response.Select(x => Mapper.Map<T>(x)).ToArray();
+                    
+                    returnModels.AddRange(models);
+
+                    count = response.Length;
+
+                    if (count < request.Count)
+                        count = 0;
+
+                    if (stopwatch.Elapsed < TimeSpan.FromSeconds(1.01))
+                        await Task.Delay(TimeSpan.FromSeconds(1).Subtract(stopwatch.Elapsed));
+
+                } while (count > 0);
+
+                return returnModels;
+            }
+        }
+
+        private async Task OnSocketReceive(string json)
+        {
+            var table = JObject.Parse(json)?["table"]?.Value<string>();
+
+            if (table == null)
+                return;
+
+            var candleChannel = ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Candle];
+
+            if (table.Contains(candleChannel))
+            {
+                var timePeriod = ExchangeConfig.SupportedTimePeriods
+                    .Select(x => new { x.Key, x.Value })
+                    .FirstOrDefault(x => x.Value == table.Replace(candleChannel, ""))?.Key;
+
+                if (timePeriod.HasValue)
+                {
+                    var candleModels = JsonConvert.DeserializeObject<BitmexSocketResponseContainer<CandleResponse>>(json).Data.Select(Mapper.Map<CandleModel>).ToArray();
+
                     foreach (var model in candleModels)
-                        model.Period = timePeriod;
+                        model.Period = timePeriod.Value;
+
+                    if (_subscriptions.ContainsKey(ExchangeChannel.Candle))
+                    {
+                        var subs = _subscriptions[ExchangeChannel.Candle];
+
+                        foreach (var subscription in subs)
+                            await subscription.TriggerUpdate(candleModels);
+                    }
                 }
-
-                await onRecieve.Invoke(candleModels);
-
-                count = candles?.Length ?? 0;
-
-                if (count < request.Count)
-                    count = 0;
-
-                if (stopwatch.Elapsed < TimeSpan.FromSeconds(1.01))
-                    await Task.Delay(TimeSpan.FromSeconds(1).Subtract(stopwatch.Elapsed));
-
-            } while (count > 0);
-        }
-
-        private async Task OnReceiveTrade(TradeSocketResponse[] arg)
-        {
-            if (OnTradeReceived != null)
-            {
-                var models = arg.Select(Mapper.Map<TradeModel>).ToArray();
-
-                await OnTradeReceived.Invoke(models.ToArray());
             }
         }
 
-        private async Task OnReceiveBook(BookSocketResponse[] arg)
+        private string GetSocketRequest(ExchangeChannel channel)
         {
-            if (OnBookReceived != null)
+            switch (channel)
             {
-                var models = arg.Select(Mapper.Map<BookModel>).ToArray();
+                case ExchangeChannel.Trade:
+                    return BitmexUtils.GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Trade], ToSymbol(Instrument.BTCUSD));
+                case ExchangeChannel.Book:
+                    return BitmexUtils.GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Book], ToSymbol(Instrument.BTCUSD));
+                case ExchangeChannel.Candle:
+                    var paths = ExchangeConfig.SupportedTimePeriods.Values.Select(x => $"{ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Candle]}{x}").ToList();
+                    var args = paths.Select(x => new[] {ToSymbol(Instrument.BTCUSD)}).ToList();
 
-                await OnBookReceived.Invoke(models);
-            }
-        }
-
-        private async Task OnReceiveCandle(CandleSocketResponse[] arg)
-        {
-            if (OnCandleReceived != null)
-            {
-                var models = arg.Select(Mapper.Map<CandleModel>).ToArray();
-
-                await OnCandleReceived.Invoke(models);
+                    return BitmexUtils.GetSocketRequest(paths, args);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(channel), channel, null);
             }
         }
 

@@ -8,49 +8,40 @@ using NLog;
 
 namespace Bognabot.Services.Exchange
 {
-    public abstract class ExchangeHttpClient
+    public class ExchangeHttpClient : HttpClient
     {
         private readonly ILogger _logger;
 
-        protected ExchangeHttpClient(ILogger logger)
+        public ExchangeHttpClient(string baseUrl)
         {
-            _logger = logger;
+            _logger = LogManager.GetCurrentClassLogger();
+            
+            BaseAddress = new Uri(baseUrl);
         }
 
-        protected abstract Dictionary<Type, IHttpCommand> Commands { get; }
-        protected abstract void AddAuthHeaders<T>(T request, HttpClient client, string urlQuery) where T : CommandRequest;
-
-        public async Task<TY[]> GetAsync<T, TY>(T request) where T : CommandRequest where TY : CommandResponse
+        public async Task<T[]> GetAsync<T>(string path, string urlQuery, Dictionary<string, string> authHeaders = null)
         {
-            _logger.Log(LogLevel.Debug, $"{request.HttpMethod} {request.GetType().Name}");
+            _logger.Log(LogLevel.Debug, $"{HttpMethod.Get} {path}");
 
-            using (var client = new HttpClient())
+            if (authHeaders != null)
             {
-                var cmdType = typeof(T);
-
-                if (!Commands.ContainsKey(cmdType))
-                    return null;
-
-                var cmd = Commands[cmdType];
-
-                var urlQuery = cmd.GetRequestParams(request).BuildQueryString();
-
-                AddAuthHeaders(request, client, urlQuery);
-
-                var queryUri = new Uri($"{client.BaseAddress}{request.Path}{urlQuery}");
-
-                var response = await client.GetAsync(queryUri);
-
-                _logger.Log(LogLevel.Debug, $"{request.HttpMethod} {request.GetType().Name} {queryUri}");
-                _logger.Log(response.IsSuccessStatusCode ? LogLevel.Debug : LogLevel.Error, $"{request.HttpMethod} {request.GetType().Name} {response.ReasonPhrase}");
-
-                if (!response.IsSuccessStatusCode)
-                    return null;
-
-                var json = await response.Content.ReadAsStringAsync();
-
-                return JsonConvert.DeserializeObject<TY[]>(json);
+                foreach (var authHeader in authHeaders)
+                    DefaultRequestHeaders.Add(authHeader.Key, authHeader.Value);
             }
+
+            var queryUri = new Uri($"{BaseAddress}{path}{urlQuery}");
+
+            var response = await GetAsync(queryUri);
+
+            _logger.Log(LogLevel.Debug, $"{HttpMethod.Get} {path} {queryUri}");
+            _logger.Log(response.IsSuccessStatusCode ? LogLevel.Debug : LogLevel.Error, $"{HttpMethod.Get} {path} {response.ReasonPhrase}");
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+
+            return JsonConvert.DeserializeObject<T[]>(json);
         }
     }
 }

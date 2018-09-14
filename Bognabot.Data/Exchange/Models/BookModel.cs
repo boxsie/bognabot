@@ -1,13 +1,10 @@
 ﻿using System;
 using Bognabot.Data.Exchange.Enums;
-using Bognabot.Domain.Entities.Instruments;
 
-namespace Bognabot.Data.Models.Exchange
+namespace Bognabot.Data.Exchange.Models
 {
-    public class BookModel
+    public class BookModel : ExchangeModel
     {
-        public Instrument Instrument { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
         public TradeType Side { get; set; }
         public long Size { get; set; }
         public double Price { get; set; }

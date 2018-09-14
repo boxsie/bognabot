@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json;
 
-namespace Bognabot.Bitmex.Socket.Responses
+namespace Bognabot.Bitmex.Response
 {
-    public class SocketResponse<T>
+    public class BitmexSocketResponseContainer<T>
     {
         [JsonProperty("table")]
         public string Table { get; set; }

@@ -6,96 +6,61 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Bognabot.Data.Exchange;
-using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Exchange.Enums;
+using NLog;
 
 namespace Bognabot.Services.Exchange
 {
     public interface IExchangeSocketClient
     {
-        Task ConnectAsync();
-        Task SubscribeAsync<T>(Func<T[], Task> onReceive, params string[] args) where T : SocketResponse;
-        Task ListenAsync();
+        Task ConnectAsync(string url, Func<string, Task> onReceive);
+        Task SubscribeAsync(string request);
         Task SendAsync(string message);
     }
 
-    public abstract class ExchangeSocketClient
+    public class ExchangeSocketClient : IExchangeSocketClient
     {
-        protected abstract Uri DataUri { get; }
-        protected abstract Dictionary<string, ISocketChannel> Channels { get; }
-        protected abstract string GetAuthRequest();
-        protected abstract SocketResponse[] ParseResponseJson(string json);
-
+        private readonly ILogger _logger;
         private readonly EncodingType _encodingType;
-        private readonly Func<string, Task> _onReceived;
-        private readonly Dictionary<Type, List<Func<SocketResponse[], Task>>> _subscribers;
+        private readonly List<string> _subscribedRequests;
 
         private ClientWebSocket _client;
         private CancellationToken _cancellationToken;
+        private Func<string, Task> _onReceive;
 
-        protected ExchangeSocketClient()
+        public ExchangeSocketClient(ILogger logger)
         {
-            _subscribers = new Dictionary<Type, List<Func<SocketResponse[], Task>>>();
-
+            _logger = logger;
             _encodingType = EncodingType.UTF8;
-            _onReceived = OnReceived;
+            _subscribedRequests = new List<string>();
         }
 
-        public async Task ConnectAsync()
+        public async Task ConnectAsync(string url, Func<string, Task> onReceive)
         {
+            _onReceive = onReceive;
+
             _client?.Dispose();
             _client = new ClientWebSocket();
             _cancellationToken = new CancellationToken();
 
-            await _client.ConnectAsync(DataUri, _cancellationToken);
+            await _client.ConnectAsync(new Uri(url), _cancellationToken);
 
+#pragma warning disable CS4014
             Task.Run(ListenAsync, _cancellationToken).ConfigureAwait(false);
+#pragma warning restore CS4014
         }
 
-        public async Task SubscribeAsync<T>(Func<T[], Task> onReceive, params string[] args) where T : SocketResponse
+        public async Task SubscribeAsync(string request)
         {
-            var streamType = (typeof(T));
+            if (_subscribedRequests.Any(x => x == request))
+                return;
             
-            if (!Channels.ContainsKey(streamType))
-                return;
+            _subscribedRequests.Add(request);
 
-            var onRecFunc = new Func<SocketResponse[], Task>(x => onReceive.Invoke(x.Select(y => (T)y).ToArray()));
-
-            if (_subscribers.ContainsKey(streamType))
-            {
-                var subs = _subscribers[streamType];
-
-                subs.Add(onRecFunc);
-            }
-            else
-            {
-                _subscribers.Add(streamType, new List<Func<SocketResponse[], Task>> { onRecFunc });
-
-                var channel = Channels[streamType];
-
-                await SendAsync(channel.GetRequest(args));
-            }
+            await SendAsync(request);
         }
 
-        private async Task OnReceived(string arg)
-        {
-            var baseResponse = ParseResponseJson(arg);
-
-            if (baseResponse == null || !baseResponse.Any())
-                return;
-
-            var key = baseResponse.First().GetType();
-
-            if (_subscribers.ContainsKey(key))
-            {
-                var subs = _subscribers[key];
-
-                if (subs.Count > 0)
-                    await Task.WhenAll(subs.Select(x => x.Invoke(baseResponse)));
-            }
-        }
-
-        private async Task SendAsync(string message)
+        public async Task SendAsync(string message)
         {
             var buffer = NetUtils.EncodeText(message, _encodingType);
             var messageSegment = new ArraySegment<byte>(buffer);
@@ -125,8 +90,10 @@ namespace Bognabot.Services.Exchange
                             break;
                     }
 
-                    if (_onReceived != null)
-                        await _onReceived.Invoke(response.ToString());
+                    var responseText = response.ToString();
+
+                    _logger.Log(LogLevel.Debug, responseText);
+                    await _onReceive.Invoke(responseText);
                 }
             }
             catch (Exception e)

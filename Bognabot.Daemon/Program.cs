@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Bognabot.Bitmex;
-using Bognabot.Bitmex.Http;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Core;
 using Bognabot.Data;
 using Bognabot.Jobs;
+using Bognabot.Services.Exchange;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -55,8 +55,10 @@ namespace Bognabot.Daemon
         private static void ConfigureApp(IServiceProvider serviceProvider)
         {
             AppInitialise.LoadUserData(serviceProvider, AppDomain.CurrentDomain.BaseDirectory);
+            
+            var sm = serviceProvider.GetService<ServiceManager>();
 
-            Task.Run(_serviceProvider.GetService<JobService>().RunAsync);
+            Task.Run(() => AppInitialise.Start(sm));
         }
     }
 }

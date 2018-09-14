@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Bognabot.Bitmex.Socket.Responses
 {
-    public class BookSocketResponse : SocketResponse
+    public class BookResponse
     {
         [JsonProperty("timestamp")]
         public DateTimeOffset Timestamp { get; set; }

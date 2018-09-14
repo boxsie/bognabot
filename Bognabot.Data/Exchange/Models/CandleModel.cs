@@ -3,7 +3,7 @@ using Bognabot.Data.Exchange.Enums;
 
 namespace Bognabot.Data.Exchange.Models
 {
-    public class CandleModel
+    public class CandleModel : ExchangeModel
     {
         public double High { get; set; }
         public double Low { get; set; }
@@ -12,8 +12,6 @@ namespace Bognabot.Data.Exchange.Models
         public double Volume { get; set; }
         public long Trades { get; set; }
         public string ExchangeName { get; set; }
-        public Instrument Instrument { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
         public TimePeriod Period { get; set; }
     }
 }

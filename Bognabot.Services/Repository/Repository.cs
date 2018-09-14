@@ -8,7 +8,6 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
-using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities;
 using Bognabot.Domain.Entities.Instruments;
 using Dapper;

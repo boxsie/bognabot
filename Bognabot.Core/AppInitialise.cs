@@ -8,13 +8,12 @@ using AutoMapper;
 using Bognabot.Data;
 using Bognabot.Data.Config;
 using Bognabot.Data.Config.Contracts;
-using Bognabot.Data.Exchange.Contracts;
+using Bognabot.Data.Exchange;
 using Bognabot.Data.Mapping;
-using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Jobs;
 using Bognabot.Jobs.Core;
-using Bognabot.Jobs.Sync;
+using Bognabot.Services.Exchange;
 using Bognabot.Services.Repository;
 using Bognabot.Storage.Core;
 using Bognabot.Storage.Stores;
@@ -24,6 +23,30 @@ using NLog;
 
 namespace Bognabot.Core
 {
+    public class ServiceManager
+    {
+        private readonly IEnumerable<IExchangeService> _exchangeServices;
+        private readonly JobService _jobService;
+        private readonly CandleSyncService _candleSyncService;
+
+        public ServiceManager(IEnumerable<IExchangeService> exchangeServices, JobService jobService, CandleSyncService candleSyncService)
+        {
+            _exchangeServices = exchangeServices;
+            _jobService = jobService;
+            _candleSyncService = candleSyncService;
+        }
+
+        public async Task StartAsync()
+        {
+            foreach (var exchangeService in _exchangeServices)
+                await exchangeService.ConnectAsync();
+            
+            //await jobService.RunAsync();
+
+            await _candleSyncService.StartSync();
+        }
+    }
+
     public static class AppInitialise
     {
         private static readonly ILogger _logger;
@@ -54,11 +77,12 @@ namespace Bognabot.Core
             services.AddSingleton<GeneralConfig>((x) => ConfigFactory<GeneralConfig>().GetAwaiter().GetResult());
             services.AddSingleton<IConfig, GeneralConfig>(x => x.GetService<GeneralConfig>());
 
+            services.AddSingleton<ServiceManager>();
             services.AddSingleton<RepositoryService>();
-            services.AddTransient<IRepository<Candle>, Repository<Candle>>();
-
+            services.AddSingleton<CandleSyncService>();
             services.AddSingleton<JobService>();
-            services.AddTransient<CandleSync>();
+
+            services.AddTransient<IRepository<Candle>, Repository<Candle>>();
         }
 
         public static void LoadUserData(IServiceProvider serviceProvider, string appRootPath)
@@ -74,6 +98,11 @@ namespace Bognabot.Core
             });
 
             Cfg.InitialiseConfig(serviceProvider.GetServices<IConfig>());
+        }
+
+        public static Task Start(ServiceManager serviceManager)
+        {
+            return serviceManager.StartAsync();
         }
 
         private static object ExchangeServiceFactory(IServiceProvider service, Type exchType, string exchName)

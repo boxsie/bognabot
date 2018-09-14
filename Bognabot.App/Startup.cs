@@ -5,19 +5,16 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Bognabot.App.Hubs;
 using Bognabot.Bitmex;
-using Bognabot.Bitmex.Http;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Core;
 using Bognabot.Data;
 using Bognabot.Data.Config;
 using Bognabot.Data.Config.Contracts;
-using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Mapping;
-using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Jobs;
-using Bognabot.Jobs.Sync;
 using Bognabot.Services;
+using Bognabot.Services.Exchange;
 using Bognabot.Services.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -85,9 +82,9 @@ namespace Bognabot.App
         {
             AppInitialise.LoadUserData(serviceProvider, _env.ContentRootPath);
 
-            var js = serviceProvider.GetService<JobService>();
+            var sm = serviceProvider.GetService<ServiceManager>();
 
-            Task.Run(js.RunAsync);
+            Task.Run(() => AppInitialise.Start(sm));
             Task.Run(ElectronBootstrap.InitAsync);
         }
     }

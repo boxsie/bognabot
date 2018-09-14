@@ -11,9 +11,7 @@ namespace Bognabot.Data.Config
         public string RestUrl { get; set; }
         public Dictionary<Instrument, string> SupportedInstruments { get; set; }
         public Dictionary<TimePeriod, string> SupportedTimePeriods { get; set; }
-        public string TradePathWebSocket { get; set; }
-        public string BookPathWebSocket { get; set; }
-        public string CandlePathWebsocket { get; set; }
-        public string CandlePathRest { get; set; }
+        public Dictionary<ExchangeChannel, string> SupportedRestChannels { get; set; }
+        public Dictionary<ExchangeChannel, string> SupportedWebsocketChannels { get; set; }
     }
 }

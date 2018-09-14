@@ -3,7 +3,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Bognabot.Jobs.Core;
-using Bognabot.Jobs.Sync;
 using NLog;
 using Quartz;
 using Quartz.Impl;

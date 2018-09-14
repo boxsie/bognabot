@@ -1,42 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
-using Bognabot.Data.Exchange;
-using Bognabot.Data.Exchange.Contracts;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Data.Exchange.Models;
-using Bognabot.Data.Models.Exchange;
-using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;
-using Bognabot.Jobs.Core;
-using Bognabot.Services;
 using Bognabot.Services.Repository;
 using NLog;
 
-namespace Bognabot.Jobs.Sync
+namespace Bognabot.Services.Exchange
 {
-    public class CandleSync : SyncJob
+    public class CandleSyncService
     {
         private readonly RepositoryService _repoService;
-        private readonly IEnumerable<IExchangeService> _exchangeServices;
+        private readonly IEnumerable<IExchangeService> _exchanges;
+        private readonly ILogger _logger;
+        private readonly IStreamSubscription _subscription;
 
-        public CandleSync(ILogger logger, RepositoryService repoService,
-            IEnumerable<IExchangeService> exchangeServices) : base(logger, 5)
+        public CandleSyncService(RepositoryService repoService, IEnumerable<IExchangeService> exchanges, ILogger logger)
         {
             _repoService = repoService;
-            _exchangeServices = exchangeServices;
+            _exchanges = exchanges;
+            _logger = logger;
+
+            _subscription = new StreamSubscription<CandleModel>(InsertCandles);
         }
 
-        protected override async Task ExecuteAsync()
+        public async Task StartSync()
+        {
+            await Catchup();
+
+            foreach (var exchange in _exchanges)
+                await exchange.SubscribeToStreamAsync<CandleModel>(ExchangeChannel.Candle, _subscription);
+        }
+
+        private async Task Catchup()
         {
             var instruments = Enum.GetValues(typeof(Instrument)).Cast<Instrument>();
             var periods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>();
 
             foreach (var instrument in instruments)
             {
-                foreach (var exchange in _exchangeServices)
+                foreach (var exchange in _exchanges)
                 {
                     var supportedPeriods = exchange.ExchangeConfig.SupportedTimePeriods;
                     var maxPoints = exchange.ExchangeConfig.UserConfig.MaxDataPoints;
@@ -46,7 +53,7 @@ namespace Bognabot.Jobs.Sync
                         var candleRepo = await _repoService.GetCandleRepositoryAsync(exchange.ExchangeConfig.ExchangeName, instrument, period.Key);
                         var lastEntry = await candleRepo.GetLastEntryAsync();
                         var now = exchange.Now;
-                        
+
                         var dataPoints = lastEntry != null
                             ? GetDataPointsFromTimeSpan(period.Key, now - lastEntry.TimestampOffset)
                             : maxPoints;
@@ -58,38 +65,38 @@ namespace Bognabot.Jobs.Sync
                             dataPoints = maxPoints;
 
                         var lastEntryLogText = (lastEntry != null ? $"was last seen at {lastEntry.TimestampOffset}" : "has no pevious records");
-                        Logger.Log(LogLevel.Info, $"{exchange.ExchangeConfig.ExchangeName} {instrument} {period.Key} {lastEntryLogText}");
+                        _logger.Log(LogLevel.Info, $"{exchange.ExchangeConfig.ExchangeName} {instrument} {period.Key} {lastEntryLogText}");
 
                         var syncStatusText = (dataPoints > 0 ? $"{dataPoints} data points behind" : "up to date");
-                        Logger.Log(LogLevel.Info, $"{exchange.ExchangeConfig.ExchangeName} {instrument} {period.Key} is {syncStatusText}");
+                        _logger.Log(LogLevel.Info, $"{exchange.ExchangeConfig.ExchangeName} {instrument} {period.Key} is {syncStatusText}");
 
-                        await exchange.GetCandlesAsync(
-                            instrument,
-                            period.Key,
-                            GetTimeOffsetFromDataPoints(period.Key, now, dataPoints),
-                            exchange.Now,
-                            OnRecieve);
+                        await InsertCandles(await exchange.GetCandlesAsync(instrument, period.Key, GetTimeOffsetFromDataPoints(period.Key, now, dataPoints), exchange.Now));
                     }
                 }
             }
         }
 
-        private async Task OnRecieve(CandleModel[] arg)
+        private async Task InsertCandles(IReadOnlyCollection<CandleModel> candleModels)
         {
-            if (arg == null || !arg.Any())
+            if(candleModels == null || !candleModels.Any())
                 return;
 
-            var first = arg.First();
+            var first = candleModels.First();
 
             var candleRepo = await _repoService.GetCandleRepositoryAsync(first.ExchangeName, first.Instrument, first.Period);
+            
+            var last = await candleRepo.GetLastEntryAsync();
 
-            Logger.Log(LogLevel.Debug, $"Inserting {arg.Length} candle records");
+            var candles = candleModels.Where(x => last == null || x.Timestamp > last.TimestampOffset).Select(Mapper.Map<Candle>).ToList();
 
-            var candles = arg.Select(Mapper.Map<Candle>);
+            if (!candles.Any())
+                return;
+
+            _logger.Log(LogLevel.Debug, $"Inserting {candles.Count} candle records");
 
             await candleRepo.CreateAsync(candles);
 
-            Logger.Log(LogLevel.Info, "Candles are up to date");
+            _logger.Log(LogLevel.Info, $"{first.ExchangeName} {first.Period} {first.Instrument} candles have been updated");
         }
 
         private DateTimeOffset GetTimeOffsetFromDataPoints(TimePeriod period, DateTimeOffset start, int dataPoints)
@@ -113,7 +120,7 @@ namespace Bognabot.Jobs.Sync
 
         private int GetDataPointsFromTimeSpan(TimePeriod period, TimeSpan span)
         {
-            var mins = (int) span.TotalMinutes;
+            var mins = (int)span.TotalMinutes;
 
             switch (period)
             {

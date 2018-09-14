@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 using Bognabot.Data;
 using Bognabot.Data.Config;
 using Bognabot.Data.Config.Contracts;
-using Bognabot.Data.Exchange.Contracts;
+using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Enums;
-using Bognabot.Data.Repository;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Storage.Core;
 using Microsoft.Extensions.Logging;
+using IExchangeService = Bognabot.Services.Exchange.IExchangeService;
 
 namespace Bognabot.Services.Repository
 {

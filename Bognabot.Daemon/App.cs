@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Bognabot.Bitmex;
-using Bognabot.Data.Models.Exchange;
 using Microsoft.Extensions.Logging;
 
 namespace Bognabot.Daemon
@@ -21,7 +20,7 @@ namespace Bognabot.Daemon
 
         public async void Run()
         {
-            await _bitmexService.StartStreamingChannels();
+            await _bitmexService.ConnectAsync();
 
             //_bitmexService.OnTradeReceived += OnTradeReceived;
             //_bitmexService.OnBookReceived += OnBookReceived;
