@@ -4,4 +4,9 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Bognabot.Data\Bognabot.Data.csproj" />
+    <ProjectReference Include="..\Bognabot.Domain\Bognabot.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

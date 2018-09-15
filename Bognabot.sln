@@ -19,7 +19,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Jobs", "Bognabot.J
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Services", "Bognabot.Services\Bognabot.Services.csproj", "{3E2FA0F8-4A2B-4190-911A-7F6361D55CEA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Core", "Bognabot.Core\Bognabot.Core.csproj", "{ADFD044F-D103-4243-AB7D-57F977F9F7DB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Core", "Bognabot.Core\Bognabot.Core.csproj", "{ADFD044F-D103-4243-AB7D-57F977F9F7DB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Trader", "Bognabot.Trader\Bognabot.Trader.csproj", "{B5B91269-58EC-4830-B32C-5DF3FA56BDCA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,6 +65,10 @@ Global
 		{ADFD044F-D103-4243-AB7D-57F977F9F7DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADFD044F-D103-4243-AB7D-57F977F9F7DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADFD044F-D103-4243-AB7D-57F977F9F7DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5B91269-58EC-4830-B32C-5DF3FA56BDCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5B91269-58EC-4830-B32C-5DF3FA56BDCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5B91269-58EC-4830-B32C-5DF3FA56BDCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5B91269-58EC-4830-B32C-5DF3FA56BDCA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
