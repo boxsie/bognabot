@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Bognabot.Domain.Entities.Instruments;
 
 namespace Bognabot.Trader
@@ -174,6 +175,88 @@ namespace Bognabot.Trader
         }
 
         /// <summary>
+        /// Commodity Channel Index
+        /// </summary>
+        public static double[] CCI(int period, Candle[] candles)
+        {
+            /*
+             CCI = (Typical Price - n-period SMA of TP) / (.015 x Mean Deviation)
+             
+             Typical Price (TP) = (High + Low + Close)/3
+             Constant = .015  
+
+             There are four steps to calculating the Mean Deviation: 
+             First, subtract the most recent n-period average of the typical price from each period's typical price. 
+             Second, take the absolute values of these numbers. 
+             Third, sum the absolute values. 
+             Fourth, divide by the total number of periods.                        
+            */
+
+            var cci = new double[candles.Length - (period - 1)];
+
+            for (var i = 0; i < cci.Length; i++)
+            {
+                var typicalPrices = candles
+                    .Skip(i)
+                    .Take(period)
+                    .Select(c => (c.High + c.Low + c.Close) / 3)
+                    .ToArray();
+
+                var tpAverage = typicalPrices.Average();
+                var meanDeviation = typicalPrices.Select(tp => Math.Abs(tp - tpAverage)).Sum() / period;
+
+                cci[i] = (typicalPrices.First() - SMA(typicalPrices, period).First()) / (0.015d * meanDeviation);
+            }
+
+            return cci;
+        }
+
+        /// <summary>
+        /// Chande Momentum Oscillator
+        /// </summary>
+        public static double[] CMO(int period, Candle[] candles)
+        {
+            if (candles.Length < period + 1)
+                throw new IndexOutOfRangeException("The CMO indicator requires period + 1 candles");
+
+            /*
+                CMO = ((SU - SD) / (SU + SD)) * 100
+
+                Calculate the difference between closing price for the current and the previous period.
+                If the change is positive, add it to the sum of up days (SU) for the specified period.
+                If the change is negative, add the absolute value to the sum of down days (SD) for the specified period.
+                To calculate Chande Momentum for the specified period (normally 20), take the difference, SU - SD, and divide by total movement, SU + SD.
+            */
+
+            var cmo = new double[candles.Length - (period - 1)];
+
+            for (var i = 0; i < cmo.Length; i++)
+            {
+                var periodCandles = candles
+                    .Skip(i)
+                    .Take(period)
+                    .ToArray();
+
+                var su = 0d;
+                var sd = 0d;
+
+                for (var o = 0; o < period - 1; o++)
+                {
+                    var delta = periodCandles[o].Close - periodCandles[o + 1].Close;
+
+                    if (delta > 0)
+                        su += delta;
+                    else
+                        sd += Math.Abs(delta);
+                }
+
+                cmo[i] = ((su - sd) / (su + sd)) * 100;
+            }
+
+            return cmo;
+        }
+
+        /// <summary>
         /// Directional Movement Index Minus
         /// </summary>
         public static double[] DmiMinus(double[] prices, int period, Candle[] candles)
@@ -182,7 +265,7 @@ namespace Bognabot.Trader
 
             pdm[0] = 0d;
 
-            for (int i = 1; i < prices.Length; ++i)
+            for (var i = 1; i < prices.Length; ++i)
             {
                 var plusDm = candles[i].High - candles[i - 1].High;
                 var minusDm = candles[i - 1].Low - candles[i].Low;
@@ -380,6 +463,59 @@ namespace Bognabot.Trader
         }
 
         /// <summary>
+        /// Money Flow Index
+        /// </summary>
+        public static double[] MFI(int period, Candle[] candles)
+        {
+            if (candles.Length < period + 1)
+                throw new IndexOutOfRangeException("The MFI indicator requires period + 1 candles");
+
+            /*
+                Typical price = (high price + low price + closing price) / 3
+                Raw money flow = typical price x volume
+                Money flow ratio = (14-day Positive Money Flow) / (14-day Negative Money Flow)
+                Positive money flow is calculated by summing up all of the money flow on the days in the period
+                where the typical price is higher than the previous typical price. This same logic applies for the negative money flow.
+                MFI = 100 - 100 / (1 + money flow ratio)
+            */
+
+            var mfi = new double[candles.Length - (period - 1)];
+
+            for (var i = 0; i < mfi.Length; i++)
+            {
+                var rawMoneyFlow = candles
+                    .Skip(i)
+                    .Take(period + 1)
+                    .Select(c => ((c.High + c.Low + c.Close) / 3) * c.Volume)
+                    .ToArray();
+
+                if (rawMoneyFlow.Length < period + 1)
+                    break;
+                
+                var posMf = 0d;
+                var negMf = 0d;
+
+                for (var o = 0; o < rawMoneyFlow.Length - 1; o++)
+                {
+                    var rmf = rawMoneyFlow[o];
+                    var rmfPrev = rawMoneyFlow[o + 1];
+
+                    if (rmf >= rmfPrev)
+                        posMf += rmf;
+
+                    if (rmf <= rmfPrev)
+                        negMf += rmf;
+                }
+
+                var mfr = posMf / negMf;
+
+                mfi[i] = 100 - (100 / (1 + mfr));
+            }
+
+            return mfi;
+        }
+
+        /// <summary>
         /// Momentum
         /// </summary>
         public static double[] Momentum(double[] prices, int period)
@@ -450,24 +586,14 @@ namespace Bognabot.Trader
         /// </summary>
         public static double[] SMA(double[] prices, int period)
         {
-            var sma = new double[prices.Length];
-            var sum = 0d;
+            /*
+             A 5-day simple moving average is the five-day sum of closing prices divided by five
+            */
 
-            for (var i = 0; i < period; i++)
-            {
-                sum += prices[i];
-                sma[i] = sum / (i + 1);
-            }
+            var sma = new double[prices.Length - (period - 1)];
 
-            for (var i = period; i < prices.Length; i++)
-            {
-                sum = 0;
-
-                for (var j = i; j > i - period; j--)
-                    sum += prices[j];
-
-                sma[i] = sum / period;
-            }
+            for (var i = 0; i < sma.Length; i++)
+                sma[i] = prices.Skip(i).Take(period).Sum() / period;
 
             return sma;
         }

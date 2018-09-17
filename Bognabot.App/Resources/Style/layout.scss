@@ -3,3 +3,29 @@
 body {
     background-color: aliceblue;
 }
+
+#sidebar {
+    position: fixed;
+    width: 200px;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    background: #7386d5;
+    padding: 15px;
+    color: #fff;
+
+    a {
+        color: #fff;
+    }
+}
+
+#content {
+    position: fixed;
+    left: 200px;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    padding: 15px;
+    color: #172664
+}

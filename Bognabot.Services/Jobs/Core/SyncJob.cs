@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using NLog;
 using Quartz;
 
-namespace Bognabot.Jobs.Core
+namespace Bognabot.Services.Jobs.Core
 {
     [DisallowConcurrentExecution]
     public abstract class SyncJob : IJob
@@ -43,7 +42,7 @@ namespace Bognabot.Jobs.Core
                 .Build();
         }
 
-        public async Task Execute(IJobExecutionContext context)
+        public virtual async Task Execute(IJobExecutionContext context)
         {
             try
             {

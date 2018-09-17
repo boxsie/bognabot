@@ -27,7 +27,7 @@ namespace Bognabot.Data
         static Cfg()
         {
 #if DEBUG
-            IsDebug = true;
+            IsDebug = false;
 #else
             IsDebug = false;
 #endif

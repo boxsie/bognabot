@@ -3,7 +3,7 @@ using Quartz;
 using Quartz.Simpl;
 using Quartz.Spi;
 
-namespace Bognabot.Jobs.Core
+namespace Bognabot.Services.Jobs.Core
 {
     public class JobFactory : SimpleJobFactory
     {

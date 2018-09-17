@@ -4,7 +4,7 @@ using Bognabot.Bitmex;
 using Bognabot.Bitmex.Socket;
 using Bognabot.Core;
 using Bognabot.Data;
-using Bognabot.Jobs;
+using Bognabot.Services;
 using Bognabot.Services.Exchange;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;

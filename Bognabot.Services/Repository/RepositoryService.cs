@@ -11,19 +11,19 @@ using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Storage.Core;
-using Microsoft.Extensions.Logging;
+using NLog;
 using IExchangeService = Bognabot.Services.Exchange.IExchangeService;
 
 namespace Bognabot.Services.Repository
 {
     public class RepositoryService
     {
-        private readonly ILogger<RepositoryService> _logger;
+        private readonly ILogger _logger;
         private readonly GeneralConfig _generalConfig;
 
         private List<string> _availableTables;
 
-        public RepositoryService(ILogger<RepositoryService> logger, GeneralConfig generalConfig, IEnumerable<IExchangeService> exchanges)
+        public RepositoryService(ILogger logger, GeneralConfig generalConfig, IEnumerable<IExchangeService> exchanges)
         {
             _logger = logger;
             _generalConfig = generalConfig;
@@ -49,20 +49,20 @@ namespace Bognabot.Services.Repository
 
         private void EnsureDbCreated()
         {
-            _logger.LogInformation($"Looking for database...");
+            _logger.Log(LogLevel.Info, $"Looking for database...");
 
             var dbPath = StorageUtils.PathCombine(Cfg.UserDataPath, _generalConfig.DbFilename);
 
-            _logger.LogDebug($"Looking for database at {dbPath}");
+            _logger.Log(LogLevel.Info, $"Looking for database at {dbPath}");
 
             if (File.Exists(dbPath))
                 return;
 
-            _logger.LogInformation($"Database not found, creating...");
+            _logger.Log(LogLevel.Info, $"Database not found, creating...");
 
             SQLiteConnection.CreateFile(dbPath);
 
-            _logger.LogInformation($"Database created");
+            _logger.Log(LogLevel.Info, $"Database created");
         }
 
         private void RegisterTableNames(IReadOnlyCollection<ExchangeConfig> exchangeConfigs)

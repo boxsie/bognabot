@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -38,7 +39,7 @@ namespace Bognabot.Bitmex
             _subscriptions = new Dictionary<ExchangeChannel, List<IStreamSubscription>>();
         }
 
-        public Task ConnectAsync()
+        public Task StartAsync()
         {
             return _socketClient.ConnectAsync(ExchangeConfig.WebSocketUrl, OnSocketReceive);
         }
@@ -51,8 +52,10 @@ namespace Bognabot.Bitmex
                 .ForMember(d => d.Period, o => o.Ignore());
 
             cfg.CreateMap<TradeResponse, TradeModel>()
+                .ForMember(d => d.ExchangeName, o => o.MapFrom(s => ExchangeConfig.ExchangeName))
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
-                .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)));
+                .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)))
+                .ForMember(d => d.Timestamp, o => o.MapFrom(s => BitmexUtils.Now()));
 
             cfg.CreateMap<BookResponse, BookModel>()
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
@@ -61,6 +64,9 @@ namespace Bognabot.Bitmex
 
         public async Task SubscribeToStreamAsync<T>(ExchangeChannel channel, IStreamSubscription subscription) where T : ExchangeModel
         {
+            if (!ExchangeConfig.SupportedWebsocketChannels.ContainsKey(channel))
+                return;
+
             if (!_subscriptions.ContainsKey(channel))
                 _subscriptions.Add(channel, new List<IStreamSubscription>());
 
@@ -89,7 +95,8 @@ namespace Bognabot.Bitmex
             return models;
         }
 
-        private async Task<List<T>> GetAllAsync<T, TY, TTy>(string path, TTy request) where T : ExchangeModel where TTy : ICollectionRequest
+        private async Task<List<T>> GetAllAsync<T, TY, TTy>(string path, TTy request)
+            where T : ExchangeModel where TTy : ICollectionRequest
         {
             var stopwatch = new Stopwatch();
             var total = 0;
@@ -97,24 +104,25 @@ namespace Bognabot.Bitmex
 
             var returnModels = new List<T>();
 
-            using (var client = new ExchangeHttpClient(ExchangeConfig.RestUrl))
+            do
             {
-                do
+                using (var client = new ExchangeHttpClient(ExchangeConfig.RestUrl))
                 {
                     stopwatch.Restart();
                     total += count;
                     request.StartAt = total;
 
                     var query = request.AsDictionary().BuildQueryString();
-                    
-                    var response = await client.GetAsync<TY>(path, query, 
-                        BitmexUtils.GetHttpAuthHeaders(ExchangeConfig.RestUrl, HttpMethod.GET, path, query, ExchangeConfig.UserConfig.Key, ExchangeConfig.UserConfig.Secret));
+
+                    var response = await client.GetAsync<TY>(path, query,
+                        BitmexUtils.GetHttpAuthHeaders(ExchangeConfig.RestUrl, HttpMethod.GET, path, query,
+                            ExchangeConfig.UserConfig.Key, ExchangeConfig.UserConfig.Secret));
 
                     if (response == null)
                         throw new NullReferenceException();
 
                     var models = response.Select(x => Mapper.Map<T>(x)).ToArray();
-                    
+
                     returnModels.AddRange(models);
 
                     count = response.Length;
@@ -123,12 +131,12 @@ namespace Bognabot.Bitmex
                         count = 0;
 
                     if (stopwatch.Elapsed < TimeSpan.FromSeconds(1.01))
-                        await Task.Delay(TimeSpan.FromSeconds(1).Subtract(stopwatch.Elapsed));
+                        await Task.Delay(TimeSpan.FromSeconds(1.5).Subtract(stopwatch.Elapsed));
+                }
 
-                } while (count > 0);
+            } while (count > 0);
 
-                return returnModels;
-            }
+            return returnModels;
         }
 
         private async Task OnSocketReceive(string json)
@@ -138,7 +146,17 @@ namespace Bognabot.Bitmex
             if (table == null)
                 return;
 
-            var candleChannel = ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Candle];
+            if (await ProcessSocketCandleMessage(table, json))
+                return;
+
+            if (await ProcessSocketTradeMessage(table, json))
+                return;
+        }
+
+        private async Task<bool> ProcessSocketCandleMessage(string table, string json)
+        {
+            const ExchangeChannel channel = ExchangeChannel.Candle;
+            var candleChannel = ExchangeConfig.SupportedWebsocketChannels[channel];
 
             if (table.Contains(candleChannel))
             {
@@ -146,21 +164,46 @@ namespace Bognabot.Bitmex
                     .Select(x => new { x.Key, x.Value })
                     .FirstOrDefault(x => x.Value == table.Replace(candleChannel, ""))?.Key;
 
-                if (timePeriod.HasValue)
-                {
-                    var candleModels = JsonConvert.DeserializeObject<BitmexSocketResponseContainer<CandleResponse>>(json).Data.Select(Mapper.Map<CandleModel>).ToArray();
+                if (!timePeriod.HasValue)
+                    return false;
 
-                    foreach (var model in candleModels)
-                        model.Period = timePeriod.Value;
+                var candleModels = DeserialiseJsonToModel<CandleResponse, CandleModel>(json);
 
-                    if (_subscriptions.ContainsKey(ExchangeChannel.Candle))
-                    {
-                        var subs = _subscriptions[ExchangeChannel.Candle];
+                foreach (var model in candleModels)
+                    model.Period = timePeriod.Value;
 
-                        foreach (var subscription in subs)
-                            await subscription.TriggerUpdate(candleModels);
-                    }
-                }
+                await UpdateSubscriptions(channel, candleModels);
+                return true;
+            }
+
+            return false;
+        }
+
+        private async Task<bool> ProcessSocketTradeMessage(string table, string json)
+        {
+            const ExchangeChannel channel = ExchangeChannel.Trade;
+            var tradeChannel = ExchangeConfig.SupportedWebsocketChannels[channel];
+
+            if (!table.Contains(tradeChannel))
+                return false;
+
+            await UpdateSubscriptions(channel, DeserialiseJsonToModel<TradeResponse, TradeModel>(json));
+            return true;
+        }
+
+        private TY[] DeserialiseJsonToModel<T, TY>(string json) where TY : ExchangeModel
+        {
+            return JsonConvert.DeserializeObject<BitmexSocketResponseContainer<T>>(json).Data.Select(x => Mapper.Map<TY>(x)).ToArray();
+        }
+
+        private async Task UpdateSubscriptions(ExchangeChannel channel, IEnumerable models)
+        {
+            if (_subscriptions.ContainsKey(channel))
+            {
+                var subs = _subscriptions[channel];
+
+                foreach (var subscription in subs)
+                    await subscription.TriggerUpdate(models);
             }
         }
 

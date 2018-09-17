@@ -13,7 +13,6 @@
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.109" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Resources\Scripts\Controllers\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
   <ItemGroup>
@@ -23,7 +22,6 @@
     <ProjectReference Include="..\Bognabot.Bitmex\Bognabot.Bitmex.csproj" />
     <ProjectReference Include="..\Bognabot.Core\Bognabot.Core.csproj" />
     <ProjectReference Include="..\Bognabot.Data\Bognabot.Data.csproj" />
-    <ProjectReference Include="..\Bognabot.Jobs\Bognabot.Jobs.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Update="electron.manifest.json">

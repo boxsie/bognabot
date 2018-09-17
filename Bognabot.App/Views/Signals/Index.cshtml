@@ -1,0 +1,44 @@
+﻿
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="signals" class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            Overbought / Oversold
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-3">
+                    <h5>1M</h5>
+                    <strong>Very Weak Sell</strong>
+                </div>
+                <div class="col-3">
+                    <h5>5M</h5>
+                    <strong>Very Weak Sell</strong>
+                </div>
+                <div class="col-3">
+                    <h5>1H</h5>
+                    <strong>Neutral</strong>
+                </div>
+                <div class="col-3">
+                    <h5>1D</h5>
+                    <strong>Neutral</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="js/signals.index.js"></script>
+    <script language="javascript">
+        var vm = new bognabot.SignalsViewModel({
+
+        });
+    </script>
+}
+

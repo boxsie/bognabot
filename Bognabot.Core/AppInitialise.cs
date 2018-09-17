@@ -11,42 +11,21 @@ using Bognabot.Data.Config.Contracts;
 using Bognabot.Data.Exchange;
 using Bognabot.Data.Mapping;
 using Bognabot.Domain.Entities.Instruments;
-using Bognabot.Jobs;
-using Bognabot.Jobs.Core;
+using Bognabot.Services;
 using Bognabot.Services.Exchange;
+using Bognabot.Services.Jobs;
+using Bognabot.Services.Jobs.Jobs;
 using Bognabot.Services.Repository;
+using Bognabot.Services.Trader;
 using Bognabot.Storage.Core;
 using Bognabot.Storage.Stores;
+using Bognabot.Trader;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NLog;
 
 namespace Bognabot.Core
 {
-    public class ServiceManager
-    {
-        private readonly IEnumerable<IExchangeService> _exchangeServices;
-        private readonly JobService _jobService;
-        private readonly CandleSyncService _candleSyncService;
-
-        public ServiceManager(IEnumerable<IExchangeService> exchangeServices, JobService jobService, CandleSyncService candleSyncService)
-        {
-            _exchangeServices = exchangeServices;
-            _jobService = jobService;
-            _candleSyncService = candleSyncService;
-        }
-
-        public async Task StartAsync()
-        {
-            foreach (var exchangeService in _exchangeServices)
-                await exchangeService.ConnectAsync();
-            
-            //await jobService.RunAsync();
-
-            await _candleSyncService.StartSync();
-        }
-    }
-
     public static class AppInitialise
     {
         private static readonly ILogger _logger;
@@ -79,10 +58,15 @@ namespace Bognabot.Core
 
             services.AddSingleton<ServiceManager>();
             services.AddSingleton<RepositoryService>();
-            services.AddSingleton<CandleSyncService>();
+            services.AddSingleton<CandleService>();
             services.AddSingleton<JobService>();
+            services.AddSingleton<SignalsService>();
 
             services.AddTransient<IRepository<Candle>, Repository<Candle>>();
+
+            services.AddTransient<SignalsJob>();
+
+            services.AddTransient<ISignal, OverBoughtOverSoldSignal>();
         }
 
         public static void LoadUserData(IServiceProvider serviceProvider, string appRootPath)

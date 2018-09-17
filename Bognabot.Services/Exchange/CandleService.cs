@@ -12,28 +12,49 @@ using NLog;
 
 namespace Bognabot.Services.Exchange
 {
-    public class CandleSyncService
+    public class CandleService
     {
         private readonly RepositoryService _repoService;
-        private readonly IEnumerable<IExchangeService> _exchanges;
+        private readonly List<IExchangeService> _exchanges;
         private readonly ILogger _logger;
-        private readonly IStreamSubscription _subscription;
+        private readonly IStreamSubscription _candleSubscription;
+        private readonly IStreamSubscription _tradeSubscription;
+        private readonly TimePeriod[] _timePeriods;
+        private readonly Dictionary<TimePeriod, Dictionary<string, CandleModel>> _currentCandles;
 
-        public CandleSyncService(RepositoryService repoService, IEnumerable<IExchangeService> exchanges, ILogger logger)
+        public CandleService(RepositoryService repoService, IEnumerable<IExchangeService> exchanges, ILogger logger)
         {
             _repoService = repoService;
-            _exchanges = exchanges;
+            _exchanges = exchanges.ToList();
             _logger = logger;
 
-            _subscription = new StreamSubscription<CandleModel>(InsertCandles);
+            _candleSubscription = new StreamSubscription<CandleModel>(InsertCandles);
+            _tradeSubscription = new StreamSubscription<TradeModel>(OnNewTrade);
+            
+            _timePeriods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>().ToArray();
+            _currentCandles = _timePeriods.ToDictionary(x => x, 
+                    y => _exchanges.ToDictionary(xx => xx.ExchangeConfig.ExchangeName, 
+                            yy => new CandleModel { Period = y, ExchangeName = yy.ExchangeConfig.ExchangeName }));
         }
 
-        public async Task StartSync()
+        public async Task StartAsync()
         {
             await Catchup();
 
             foreach (var exchange in _exchanges)
-                await exchange.SubscribeToStreamAsync<CandleModel>(ExchangeChannel.Candle, _subscription);
+            {
+                await exchange.SubscribeToStreamAsync<CandleModel>(ExchangeChannel.Candle, _candleSubscription);
+                await exchange.SubscribeToStreamAsync<TradeModel>(ExchangeChannel.Trade, _tradeSubscription);
+            }
+        }
+
+        public CandleModel GetLatestCandle(TimePeriod period, string exchangeName)
+        {
+            var periodCandles = _currentCandles[period];
+
+            return periodCandles.ContainsKey(exchangeName)
+                ? periodCandles[exchangeName]
+                : null;
         }
 
         private async Task Catchup()
@@ -80,10 +101,19 @@ namespace Bognabot.Services.Exchange
         {
             if(candleModels == null || !candleModels.Any())
                 return;
+            
+            var lastModel = candleModels.Last();
 
-            var first = candleModels.First();
+            var latestCandle = _currentCandles[lastModel.Period][lastModel.ExchangeName];
 
-            var candleRepo = await _repoService.GetCandleRepositoryAsync(first.ExchangeName, first.Instrument, first.Period);
+            latestCandle.Open = lastModel.Close;
+            latestCandle.High = lastModel.Close;
+            latestCandle.Low = lastModel.Close;
+            latestCandle.Trades = 0;
+            latestCandle.Volume = 0;
+            latestCandle.Timestamp = GetTimeOffsetFromDataPoints(lastModel.Period, latestCandle.Timestamp, -1);
+
+            var candleRepo = await _repoService.GetCandleRepositoryAsync(lastModel.ExchangeName, lastModel.Instrument, lastModel.Period);
             
             var last = await candleRepo.GetLastEntryAsync();
 
@@ -96,7 +126,33 @@ namespace Bognabot.Services.Exchange
 
             await candleRepo.CreateAsync(candles);
 
-            _logger.Log(LogLevel.Info, $"{first.ExchangeName} {first.Period} {first.Instrument} candles have been updated");
+            _logger.Log(LogLevel.Info, $"{lastModel.ExchangeName} {lastModel.Period} {lastModel.Instrument} candles have been updated");
+        }
+        
+        private Task OnNewTrade(TradeModel[] arg)
+        {
+            if (arg == null || !arg.Any())
+                return Task.CompletedTask;
+
+            var last = arg.Last();
+
+            foreach (var period in _timePeriods)
+            {
+                var candle = _currentCandles[period][last.ExchangeName];
+
+                candle.Trades += arg.Length;
+                candle.Volume += arg.Sum(x => x.Size);
+
+                if (last.Price > candle.High)
+                    candle.High = last.Price;
+
+                if (last.Price < candle.Low)
+                    candle.Low = last.Price;
+
+                candle.Close = last.Price;
+            }
+
+            return Task.CompletedTask;
         }
 
         private DateTimeOffset GetTimeOffsetFromDataPoints(TimePeriod period, DateTimeOffset start, int dataPoints)

@@ -10,9 +10,14 @@
 </head>
 
 <body>
-    <div id="main">
+<div id="main">
+    <div id="sidebar">
+        @Html.ActionLink("Signals", "index", "signals")
+    </div>
+    <div id="content">
         @RenderBody()
     </div>
+</div>
     
     <script src="js/layout.js"></script>
     <script language="javascript">

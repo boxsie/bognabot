@@ -11,13 +11,6 @@ using NLog;
 
 namespace Bognabot.Services.Exchange
 {
-    public interface IExchangeSocketClient
-    {
-        Task ConnectAsync(string url, Func<string, Task> onReceive);
-        Task SubscribeAsync(string request);
-        Task SendAsync(string message);
-    }
-
     public class ExchangeSocketClient : IExchangeSocketClient
     {
         private readonly ILogger _logger;
@@ -92,7 +85,6 @@ namespace Bognabot.Services.Exchange
 
                     var responseText = response.ToString();
 
-                    _logger.Log(LogLevel.Debug, responseText);
                     await _onReceive.Invoke(responseText);
                 }
             }

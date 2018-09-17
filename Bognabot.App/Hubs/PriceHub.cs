@@ -3,46 +3,45 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Bognabot.Bitmex;
+using Bognabot.Data.Exchange.Enums;
+using Bognabot.Trader;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Bognabot.App.Hubs
 {
-    public class PriceData
+    public class SignalData
     {
-        public double Last { get; set; }
-        public double Bid { get; set; }
-        public double Ask { get; set; }
+        public string SignalId { get; set; }
+        public TimePeriod TimePeriod { get; set; }
+        public SignalStrength SignalStrength { get; set; }
     }
 
-    public class PriceControl
+    public class SignalsControl
     {
-        //private readonly IHubContext<StreamHub> _hub;
-        //private readonly BitmexService _bitmexService;
-        //private readonly Subject<PriceData> _latestPrice;
+        private readonly IHubContext<StreamHub> _hub;
 
-        //public PriceControl(IHubContext<StreamHub> hub, BitmexService bitmexService)
-        //{
-        //    _hub = hub;
-        //    _bitmexService = bitmexService;
-        //    _latestPrice = new Subject<PriceData>();
-        //}
+        public SignalsControl(IHubContext<StreamHub> hub)
+        {
+            _hub = hub;
+        }
 
-        //public IObservable<PriceData> StreamLatestPrice()
-        //{
-        //    return _latestPrice;
-        //}
+        public IObservable<SignalData> StreamLatestPrice()
+        {
+            return null;
+        }
     }
 
     public class StreamHub : Hub
     {
-        private readonly PriceControl _priceControl;
+        private readonly SignalsControl _signalControl;
 
-        public StreamHub(PriceControl priceControl)
+        public StreamHub(SignalsControl signalControl)
         {
-            _priceControl = priceControl;
+            _signalControl = signalControl;
         }
 
-        public ChannelReader<PriceData> StreamStocks()
+        public ChannelReader<SignalData> StreamStocks()
         {
             return null;// _priceControl.StreamLatestPrice().AsChannelReader(10);
         }

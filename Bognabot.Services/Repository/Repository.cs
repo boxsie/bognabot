@@ -11,7 +11,7 @@ using AutoMapper;
 using Bognabot.Domain.Entities;
 using Bognabot.Domain.Entities.Instruments;
 using Dapper;
-using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace Bognabot.Services.Repository
 {
@@ -45,7 +45,7 @@ namespace Bognabot.Services.Repository
             }
             catch (Exception e)
             {
-                _logger.LogCritical(e.Message);
+                _logger.Log(LogLevel.Warn, e.Message);
                 throw;
             }
         }
@@ -66,9 +66,10 @@ namespace Bognabot.Services.Repository
             }
             catch (Exception e)
             {
-                _logger.LogCritical(e.Message);
-                throw;
+                _logger.Log(LogLevel.Warn, e.Message);
             }
+
+            return 0;
         }
 
         public async Task<IEnumerable<int>> CreateAsync(IEnumerable<T> entities)
@@ -101,9 +102,33 @@ namespace Bognabot.Services.Repository
             }
             catch (Exception e)
             {
-                _logger.LogCritical(e.Message);
-                throw;
+                _logger.Log(LogLevel.Warn, e.Message);
             }
+            
+            return new int[0];
+        }
+
+        public async Task<IEnumerable<T>> GetLastEntriesAsync(int limit = 0)
+        {
+            var sql = $"SELECT * FROM {_tableName} ORDER BY ROWID DESC {(limit > 0 ? $"LIMIT {limit}" : "" )};";
+
+            try
+            {
+                using (var con = new SQLiteConnection(_connectionString))
+                {
+                    await con.OpenAsync();
+
+                    var result = (await con.QueryAsync(sql)).Select(Mapper.Map<T>);
+
+                    return result;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Log(LogLevel.Warn, e.Message);
+            }
+
+            return default(IEnumerable<T>);
         }
 
         public async Task<T> GetLastEntryAsync()
@@ -123,9 +148,10 @@ namespace Bognabot.Services.Repository
             }
             catch (Exception e)
             {
-                _logger.LogCritical(e.Message);
-                throw;
+                _logger.Log(LogLevel.Warn, e.Message);
             }
+
+            return default(T);
         }
 
         private static DynamicParameters CreateParams(T entity)

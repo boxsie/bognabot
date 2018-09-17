@@ -2,12 +2,11 @@
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Bognabot.Jobs.Core;
+using Bognabot.Services.Jobs.Core;
 using NLog;
-using Quartz;
 using Quartz.Impl;
 
-namespace Bognabot.Jobs
+namespace Bognabot.Services.Jobs
 {
     public class JobService
     {
@@ -20,7 +19,7 @@ namespace Bognabot.Jobs
             _logger = logger;
         }
 
-        public async Task RunAsync()
+        public async Task StartAsync()
         {
             var schedFact = new StdSchedulerFactory();
             var jobFact = new JobFactory(_serviceProvider);
@@ -31,7 +30,7 @@ namespace Bognabot.Jobs
 
             await scheduler.Start();
 
-            var jobTypes = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsSubclassOf(typeof(SyncJob)));
+            var jobTypes = Assembly.GetExecutingAssembly().GetTypes().Where(x => !x.IsAbstract && x.IsSubclassOf(typeof(SyncJob)));
 
             foreach (var jt in jobTypes)
             {

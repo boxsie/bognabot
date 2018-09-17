@@ -12,7 +12,6 @@ using Bognabot.Data.Config;
 using Bognabot.Data.Config.Contracts;
 using Bognabot.Data.Mapping;
 using Bognabot.Domain.Entities.Instruments;
-using Bognabot.Jobs;
 using Bognabot.Services;
 using Bognabot.Services.Exchange;
 using Bognabot.Services.Repository;

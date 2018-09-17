@@ -1,8 +1,8 @@
 ﻿{
   "ExchangeName": "Bitmex",
   "UserConfigFilename": "bitmex.user.live.json",
-  "WebSocketUrl": "wss://testnet.bitmex.com/realtime",
-  "RestUrl": "https://testnet.bitmex.com/api/v1",
+  "WebSocketUrl": "wss://www.bitmex.com/realtime",
+  "RestUrl": "https://www.bitmex.com/api/v1",
   "SupportedInstruments": {
     "BTCUSD": "XBTUSD"
   },

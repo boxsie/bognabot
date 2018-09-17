@@ -15,13 +15,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Daemon", "Bognabot
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Bitmex", "Bognabot.Bitmex\Bognabot.Bitmex.csproj", "{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Jobs", "Bognabot.Jobs\Bognabot.Jobs.csproj", "{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Services", "Bognabot.Services\Bognabot.Services.csproj", "{3E2FA0F8-4A2B-4190-911A-7F6361D55CEA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Core", "Bognabot.Core\Bognabot.Core.csproj", "{ADFD044F-D103-4243-AB7D-57F977F9F7DB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bognabot.Trader", "Bognabot.Trader\Bognabot.Trader.csproj", "{B5B91269-58EC-4830-B32C-5DF3FA56BDCA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bognabot.Trader", "Bognabot.Trader\Bognabot.Trader.csproj", "{B5B91269-58EC-4830-B32C-5DF3FA56BDCA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,10 +51,6 @@ Global
 		{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B025CC5A-150B-4CB4-9199-DE9ABC1DA136}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7F3BEB17-FE38-4ABD-B96C-9188CCDA4FF0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3E2FA0F8-4A2B-4190-911A-7F6361D55CEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3E2FA0F8-4A2B-4190-911A-7F6361D55CEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3E2FA0F8-4A2B-4190-911A-7F6361D55CEA}.Release|Any CPU.ActiveCfg = Release|Any CPU

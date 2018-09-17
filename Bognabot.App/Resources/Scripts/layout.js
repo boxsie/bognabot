@@ -2,6 +2,7 @@
 import 'bootstrap';
 
 import '../Style/layout.scss';
+import '../Style/signals.scss';
 
 export class LayoutViewModel {
     constructor(options) {

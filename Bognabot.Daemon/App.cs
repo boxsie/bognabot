@@ -20,7 +20,7 @@ namespace Bognabot.Daemon
 
         public async void Run()
         {
-            await _bitmexService.ConnectAsync();
+            await _bitmexService.StartAsync();
 
             //_bitmexService.OnTradeReceived += OnTradeReceived;
             //_bitmexService.OnBookReceived += OnBookReceived;

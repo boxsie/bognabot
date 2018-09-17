@@ -9,30 +9,6 @@ using NLog;
 
 namespace Bognabot.Services.Exchange
 {
-    public interface IStreamSubscription
-    {
-        Task TriggerUpdate(object obj);
-    }
-
-    public class StreamSubscription<T> : IStreamSubscription
-    {
-        public T[] Latest { get; set; }
-
-        private readonly Func<T[], Task> _onUpdate;
-
-        public StreamSubscription(Func<T[], Task> onUpdate)
-        {
-            _onUpdate = onUpdate;
-        }
-
-        public Task TriggerUpdate(object obj)
-        {
-            Latest = (T[])obj;
-
-            return _onUpdate.Invoke(Latest);
-        }
-    }
-
     public interface IExchangeService
     {
         ExchangeConfig ExchangeConfig { get; }
@@ -40,7 +16,7 @@ namespace Bognabot.Services.Exchange
         
         void ConfigureMap(IMapperConfigurationExpression cfg);
 
-        Task ConnectAsync();
+        Task StartAsync();
         Task SubscribeToStreamAsync<T>(ExchangeChannel channel, IStreamSubscription subscription) where T : ExchangeModel;
         Task<List<CandleModel>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime);
     }
