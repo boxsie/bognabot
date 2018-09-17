@@ -3,13 +3,6 @@ using Newtonsoft.Json;
 
 namespace Bognabot.Bitmex.Request
 {
-    public interface ICollectionRequest
-    {
-        double Count { get; set; }
-        double StartAt { get; set; }
-
-    }
-
     public class CandleRequest : ICollectionRequest
     {
         [JsonProperty("binSize")]
