@@ -20,6 +20,7 @@ using Bognabot.Services.Trader;
 using Bognabot.Storage.Core;
 using Bognabot.Storage.Stores;
 using Bognabot.Trader;
+using Bognabot.Trader.Signals;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NLog;

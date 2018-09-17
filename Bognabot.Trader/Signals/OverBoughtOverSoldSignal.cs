@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Domain.Entities.Instruments;
 
-namespace Bognabot.Trader
+namespace Bognabot.Trader.Signals
 {
     public class OverBoughtOverSoldSignal : ISignal
     {
