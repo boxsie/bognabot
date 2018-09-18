@@ -29,16 +29,16 @@ namespace Bognabot.Core
 {
     public static class AppInitialise
     {
-        private static readonly ILogger _logger;
+        private static readonly ILogger Logger;
 
         static AppInitialise()
         {
-            _logger = LogManager.GetCurrentClassLogger();
+            Logger = LogManager.GetCurrentClassLogger();
         }
 
         public static void AddServices(IServiceCollection services, IEnumerable<Type> exchangeServiceTypes)
         {
-            _logger.Log(LogLevel.Info, "Checking exchange services...");
+            Logger.Log(LogLevel.Info, "Checking exchange services...");
 
             var contractType = typeof(IExchangeService);
 
@@ -47,11 +47,11 @@ namespace Bognabot.Core
                 var exchName = exchType.Name.Replace("Service", "");
 
                 if (!contractType.IsAssignableFrom(exchType))
-                    _logger.Log(LogLevel.Warn, $"{exchType} exchange service does not derive from {contractType} and will not be loaded");
+                    Logger.Log(LogLevel.Warn, $"{exchType} exchange service does not derive from {contractType} and will not be loaded");
 
                 services.AddSingleton(contractType, service => ExchangeServiceFactory(service, exchType, exchName));
 
-                _logger.Log(LogLevel.Info, $"Found {exchName} exchange");
+                Logger.Log(LogLevel.Info, $"Found {exchName} exchange");
             }
             
             services.AddSingleton<GeneralConfig>((x) => ConfigFactory<GeneralConfig>().GetAwaiter().GetResult());
@@ -104,25 +104,25 @@ namespace Bognabot.Core
         {
             var configName = name ?? typeof(T).Name.Replace("Config", "");
 
-            _logger.Log(LogLevel.Info, $"Loading {configName} application data...");
+            Logger.Log(LogLevel.Info, $"Loading {configName} application data...");
 
             try
             {
                 var config = JsonConvert.DeserializeObject<T>(await Cfg.GetConfigJson(configName));
 
-                _logger.Log(LogLevel.Info, $"{configName} application data load complete");
+                Logger.Log(LogLevel.Info, $"{configName} application data load complete");
 
                 await config.LoadUserConfigAsync(Cfg.AppDataPath);
 
-                _logger.Log(LogLevel.Info, $"{configName} user data load complete");
+                Logger.Log(LogLevel.Info, $"{configName} user data load complete");
 
                 return config;
             }
             catch (Exception e)
             {
-                _logger.Log(LogLevel.Fatal, $"Unable to load {configName} application data");
-                _logger.Log(LogLevel.Fatal, e.Message);
-                _logger.Log(LogLevel.Fatal, e.StackTrace);
+                Logger.Log(LogLevel.Fatal, $"Unable to load {configName} application data");
+                Logger.Log(LogLevel.Fatal, e.Message);
+                Logger.Log(LogLevel.Fatal, e.StackTrace);
 
                 throw;
             }

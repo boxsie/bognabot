@@ -41,7 +41,9 @@ namespace Bognabot.Services.Trader
         public async Task ProcessSignals(IExchangeService exchangeService, Instrument instrument)
         {
             var periods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>();
-
+            
+            _logger.Log(LogLevel.Info, $"---- {exchangeService.ExchangeConfig.ExchangeName} {instrument} ----");
+            
             foreach (var timePeriod in periods)
             {
                 if (!exchangeService.ExchangeConfig.SupportedTimePeriods.ContainsKey(timePeriod))
@@ -56,7 +58,7 @@ namespace Bognabot.Services.Trader
 
                 var lastCandles = new List<Candle>()
                 {
-                    Mapper.Map<Candle>(_candleService.GetLatestCandle(timePeriod,
+                    Mapper.Map<Candle>(_candleService.GetLatestCandle(instrument, timePeriod,
                         exchangeService.ExchangeConfig.ExchangeName))
                 };
 
@@ -66,7 +68,7 @@ namespace Bognabot.Services.Trader
                     continue;
 
                 var candles = lastCandles.ToArray();
-
+                
                 foreach (var signal in _signals.Values.Where(x => x.SupportedTimePeriods.Any(y => y == timePeriod)))
                 {
                     var ss = await signal.ProcessSignal(timePeriod, candles);

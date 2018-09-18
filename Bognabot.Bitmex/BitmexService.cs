@@ -62,7 +62,7 @@ namespace Bognabot.Bitmex
                 .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)));
         }
 
-        public async Task SubscribeToStreamAsync<T>(ExchangeChannel channel, IStreamSubscription subscription) where T : ExchangeModel
+        public async Task SubscribeToStreamAsync<T>(ExchangeChannel channel, Instrument instrument, IStreamSubscription subscription) where T : ExchangeModel
         {
             if (!ExchangeConfig.SupportedWebsocketChannels.ContainsKey(channel))
                 return;
@@ -72,7 +72,7 @@ namespace Bognabot.Bitmex
 
             _subscriptions[channel].Add(subscription);
 
-            await _socketClient.SubscribeAsync(GetSocketRequest(channel));
+            await _socketClient.SubscribeAsync(GetSocketRequest(instrument, channel));
         }
 
         public async Task<List<CandleModel>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime)
@@ -207,17 +207,17 @@ namespace Bognabot.Bitmex
             }
         }
 
-        private string GetSocketRequest(ExchangeChannel channel)
+        private string GetSocketRequest(Instrument instrument, ExchangeChannel channel)
         {
             switch (channel)
             {
                 case ExchangeChannel.Trade:
-                    return BitmexUtils.GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Trade], ToSymbol(Instrument.BTCUSD));
+                    return BitmexUtils.GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Trade], ToSymbol(instrument));
                 case ExchangeChannel.Book:
-                    return BitmexUtils.GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Book], ToSymbol(Instrument.BTCUSD));
+                    return BitmexUtils.GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Book], ToSymbol(instrument));
                 case ExchangeChannel.Candle:
                     var paths = ExchangeConfig.SupportedTimePeriods.Values.Select(x => $"{ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Candle]}{x}").ToList();
-                    var args = paths.Select(x => new[] {ToSymbol(Instrument.BTCUSD)}).ToList();
+                    var args = paths.Select(x => new[] {ToSymbol(instrument)}).ToList();
 
                     return BitmexUtils.GetSocketRequest(paths, args);
                 default:

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Bognabot.Data.Exchange.Enums;
+using Bognabot.Data.Trader.Enums;
 using Bognabot.Domain.Entities.Instruments;
 
 namespace Bognabot.Trader.Signals
@@ -37,7 +38,7 @@ namespace Bognabot.Trader.Signals
             return Task.FromResult(ss);
         }
 
-        private double Normalise(double val, double min, double max)
+        private static double Normalise(double val, double min, double max)
         {
             return Math.Clamp((val - min) / (max - min), 0, 1);
         }

@@ -17,24 +17,34 @@ namespace Bognabot.Services.Exchange
         private readonly RepositoryService _repoService;
         private readonly List<IExchangeService> _exchanges;
         private readonly ILogger _logger;
-        private readonly IStreamSubscription _candleSubscription;
-        private readonly IStreamSubscription _tradeSubscription;
+        private readonly Dictionary<Instrument, IStreamSubscription> _candleSubscriptions;
+        private readonly Dictionary<Instrument, IStreamSubscription> _tradeSubscriptions;
         private readonly TimePeriod[] _timePeriods;
-        private readonly Dictionary<TimePeriod, Dictionary<string, CandleModel>> _currentCandles;
+        private readonly Dictionary<Instrument, Dictionary<TimePeriod, Dictionary<string, CandleModel>>> _currentCandles;
 
         public CandleService(RepositoryService repoService, IEnumerable<IExchangeService> exchanges, ILogger logger)
         {
             _repoService = repoService;
             _exchanges = exchanges.ToList();
             _logger = logger;
-
-            _candleSubscription = new StreamSubscription<CandleModel>(InsertCandles);
-            _tradeSubscription = new StreamSubscription<TradeModel>(OnNewTrade);
             
+            var instruments = Enum.GetValues(typeof(Instrument)).Cast<Instrument>().ToArray();
+
+            _candleSubscriptions = new Dictionary<Instrument, IStreamSubscription>();
+            _tradeSubscriptions = new Dictionary<Instrument, IStreamSubscription>();
+
+            foreach (var instrument in instruments)
+            {
+                _candleSubscriptions.Add(instrument, new StreamSubscription<CandleModel>(InsertCandles));
+                _tradeSubscriptions.Add(instrument, new StreamSubscription<TradeModel>(OnNewTrade));
+            }
+
             _timePeriods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>().ToArray();
-            _currentCandles = _timePeriods.ToDictionary(x => x, 
-                    y => _exchanges.ToDictionary(xx => xx.ExchangeConfig.ExchangeName, 
-                            yy => new CandleModel { Period = y, ExchangeName = yy.ExchangeConfig.ExchangeName }));
+
+            _currentCandles = instruments.ToDictionary(x => x, 
+                y => _timePeriods.ToDictionary(x => x, 
+                    yy => _exchanges.ToDictionary(xx => xx.ExchangeConfig.ExchangeName, 
+                            yyy => new CandleModel { Period = yy, ExchangeName = yyy.ExchangeConfig.ExchangeName })));
         }
 
         public async Task StartAsync()
@@ -43,14 +53,19 @@ namespace Bognabot.Services.Exchange
 
             foreach (var exchange in _exchanges)
             {
-                await exchange.SubscribeToStreamAsync<CandleModel>(ExchangeChannel.Candle, _candleSubscription);
-                await exchange.SubscribeToStreamAsync<TradeModel>(ExchangeChannel.Trade, _tradeSubscription);
+                var supportedInstruments = exchange.ExchangeConfig.SupportedInstruments;
+
+                foreach (var instrument in supportedInstruments.Keys)
+                {
+                    await exchange.SubscribeToStreamAsync<CandleModel>(ExchangeChannel.Candle, instrument, _candleSubscriptions[instrument]);
+                    await exchange.SubscribeToStreamAsync<TradeModel>(ExchangeChannel.Trade, instrument, _tradeSubscriptions[instrument]);
+                }
             }
         }
 
-        public CandleModel GetLatestCandle(TimePeriod period, string exchangeName)
+        public CandleModel GetLatestCandle(Instrument instrument, TimePeriod period, string exchangeName)
         {
-            var periodCandles = _currentCandles[period];
+            var periodCandles = _currentCandles[instrument][period];
 
             return periodCandles.ContainsKey(exchangeName)
                 ? periodCandles[exchangeName]
@@ -104,7 +119,7 @@ namespace Bognabot.Services.Exchange
             
             var lastModel = candleModels.Last();
 
-            var latestCandle = _currentCandles[lastModel.Period][lastModel.ExchangeName];
+            var latestCandle = _currentCandles[lastModel.Instrument][lastModel.Period][lastModel.ExchangeName];
 
             latestCandle.Open = lastModel.Close;
             latestCandle.High = lastModel.Close;
@@ -138,7 +153,7 @@ namespace Bognabot.Services.Exchange
 
             foreach (var period in _timePeriods)
             {
-                var candle = _currentCandles[period][last.ExchangeName];
+                var candle = _currentCandles[last.Instrument][period][last.ExchangeName];
 
                 candle.Trades += arg.Length;
                 candle.Volume += arg.Sum(x => x.Size);

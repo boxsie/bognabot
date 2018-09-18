@@ -17,7 +17,7 @@ namespace Bognabot.Services.Exchange
         void ConfigureMap(IMapperConfigurationExpression cfg);
 
         Task StartAsync();
-        Task SubscribeToStreamAsync<T>(ExchangeChannel channel, IStreamSubscription subscription) where T : ExchangeModel;
+        Task SubscribeToStreamAsync<T>(ExchangeChannel channel, Instrument instrument, IStreamSubscription subscription) where T : ExchangeModel;
         Task<List<CandleModel>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime);
     }
 }

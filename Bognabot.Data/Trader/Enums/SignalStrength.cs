@@ -1,4 +1,4 @@
-﻿namespace Bognabot.Trader
+﻿namespace Bognabot.Data.Trader.Enums
 {
     public enum SignalStrength
     {

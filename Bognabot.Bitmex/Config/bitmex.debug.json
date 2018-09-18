@@ -4,7 +4,9 @@
   "WebSocketUrl": "wss://testnet.bitmex.com/realtime",
   "RestUrl": "https://testnet.bitmex.com/api/v1",
   "SupportedInstruments": {
-    "BTCUSD": "XBTUSD"
+    "BTCUSD": "XBTUSD",
+    "ETHUSD":  "ETHUSD",
+    "XRPBTC": "XRPU18"
   },
   "SupportedTimePeriods": {
     "OneMinute": "1m",

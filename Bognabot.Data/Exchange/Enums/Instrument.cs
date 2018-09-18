@@ -2,6 +2,8 @@
 {
     public enum Instrument
     {
-        BTCUSD
+        BTCUSD,
+        ETHUSD,
+        XRPBTC
     }
 }

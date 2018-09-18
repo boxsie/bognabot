@@ -5,6 +5,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Bognabot.Bitmex;
 using Bognabot.Data.Exchange.Enums;
+using Bognabot.Data.Trader.Enums;
 using Bognabot.Trader;
 using Microsoft.AspNetCore.SignalR;
 
