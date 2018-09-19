@@ -9,4 +9,8 @@
     <ProjectReference Include="..\Bognabot.Domain\Bognabot.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Strategies\" />
+  </ItemGroup>
+
 </Project>

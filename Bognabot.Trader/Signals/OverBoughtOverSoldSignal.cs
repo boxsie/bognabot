@@ -8,6 +8,16 @@ using Bognabot.Domain.Entities.Instruments;
 
 namespace Bognabot.Trader.Signals
 {
+    public interface IStrategy
+    {
+
+    }
+
+    public class TrendBackedSMACross : IStrategy
+    {
+
+    }
+
     public class OverBoughtOverSoldSignal : ISignal
     {
         public List<TimePeriod> SupportedTimePeriods => new List<TimePeriod>
