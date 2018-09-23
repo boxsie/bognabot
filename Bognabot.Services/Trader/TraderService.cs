@@ -52,12 +52,13 @@ namespace Bognabot.Services.Trader
 
                 var signals = _signals.Values.Where(x => x.IsPeriodSupportedAsync(timePeriod).GetAwaiter().GetResult());
 
-                if (instrument == Instrument.BTCUSD && timePeriod == TimePeriod.FiveMinutes)
-                {
-                    _logger.Log(LogLevel.Info, $"{exchangeService.ExchangeConfig.ExchangeName} {instrument} {timePeriod} - SMA9 = { candleData.Indicate<SMA>(9).First() }");
-                    _logger.Log(LogLevel.Info, $"{exchangeService.ExchangeConfig.ExchangeName} {instrument} {timePeriod} - EMA9 = { candleData.Indicate<EMA>(9).First() }");
-                    _logger.Log(LogLevel.Info, $"{exchangeService.ExchangeConfig.ExchangeName} {instrument} {timePeriod} - ADX150 = {Indicatorss.ADX(candleData.GetCandles().ToArray(), 14).First()}");
-                }
+                _logger.Log(LogLevel.Info, $"{exchangeService.ExchangeConfig.ExchangeName} {instrument} {timePeriod} - SMA9 = { candleData.Indicate<SMA>(9).First() }");
+                _logger.Log(LogLevel.Info, $"{exchangeService.ExchangeConfig.ExchangeName} {instrument} {timePeriod} - EMA9 = { candleData.Indicate<EMA>(9).First() }");
+
+                //if (instrument == Instrument.BTCUSD && timePeriod == TimePeriod.FiveMinutes)
+                //{
+                //    _logger.Log(LogLevel.Info, $"{exchangeService.ExchangeConfig.ExchangeName} {instrument} {timePeriod} - ADX150 = {Indicatorss.ADX(candleData.GetCandles().ToArray(), 14).First()}");
+                //}
 
                 foreach (var signal in signals)
                 {
