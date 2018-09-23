@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Data.Trader.Enums;
 using Bognabot.Domain.Entities.Instruments;
@@ -13,44 +14,31 @@ namespace Bognabot.Trader.Signals
 
     }
 
-    public class TrendBackedSMACross : IStrategy
+    public class ADXBackedSMACross : IStrategy
     {
 
     }
-
+    
     public class OverBoughtOverSoldSignal : ISignal
     {
-        public List<TimePeriod> SupportedTimePeriods => new List<TimePeriod>
+        public Task<bool> IsPeriodSupportedAsync(TimePeriod period)
         {
-            TimePeriod.OneMinute,
-            TimePeriod.FiveMinutes,
-            TimePeriod.FifteenMinutes,
-            TimePeriod.OneHour,
-            TimePeriod.OneDay
-        };
+            return Task.FromResult(true);
+        }
 
-        public Task<SignalStrength> ProcessSignal(TimePeriod timePeriod, Candle[] candles)
+        public Task<SignalStrength> ProcessSignalAsync(TimePeriod timePeriod, CandleDto[] candles)
         {
-            var cmo = Indicators.CMO(9, candles);
-            var cci = Indicators.CCI(20, candles);
-            var mfi = Indicators.MFI(14, candles);
-            
-            var cmoUnit = Normalise(cmo.First(), -50, 50);
-            var cciUnit = Normalise(cci.First(), -100, 100);
-            var mfiUnit = Normalise(mfi.First(), 10, 80);
+            var cmo = Indicatorss.CMO(candles, 9);
+            var cci = Indicatorss.CCI(candles, 20);
+            var mfi = Indicatorss.MFI(candles, 14);
+
+            var cmoUnit = TraderUtils.NormaliseAndClamp(cmo.First(), -50, 50);
+            var cciUnit = TraderUtils.NormaliseAndClamp(cci.First(), -100, 100);
+            var mfiUnit = TraderUtils.NormaliseAndClamp(mfi.First(), 10, 80);
 
             var avg = (cmoUnit + cciUnit + mfiUnit) / 3;
 
-            var strengthCount = Enum.GetNames(typeof(SignalStrength));
-
-            var ss = (SignalStrength)(int)(strengthCount.Length - (strengthCount.Length * avg));
-
-            return Task.FromResult(ss);
-        }
-
-        private static double Normalise(double val, double min, double max)
-        {
-            return Math.Clamp((val - min) / (max - min), 0, 1);
+            return Task.FromResult(TraderUtils.ToSignalStrength(avg));
         }
     }
 }

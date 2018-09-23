@@ -1,9 +1,8 @@
-﻿using System;
-using Bognabot.Data.Exchange.Enums;
+﻿using Bognabot.Data.Exchange.Enums;
 
-namespace Bognabot.Data.Exchange.Models
+namespace Bognabot.Data.Exchange.Dtos
 {
-    public class CandleModel : ExchangeModel
+    public class CandleDto : ExchangeDto
     {
         public double High { get; set; }
         public double Low { get; set; }
@@ -11,7 +10,6 @@ namespace Bognabot.Data.Exchange.Models
         public double Close { get; set; }
         public double Volume { get; set; }
         public long Trades { get; set; }
-        public string ExchangeName { get; set; }
         public TimePeriod Period { get; set; }
     }
 }

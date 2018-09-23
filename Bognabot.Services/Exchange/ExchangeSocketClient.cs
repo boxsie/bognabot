@@ -55,7 +55,7 @@ namespace Bognabot.Services.Exchange
 
         public async Task SendAsync(string message)
         {
-            var buffer = NetUtils.EncodeText(message, _encodingType);
+            var buffer = ExchangeUtils.EncodeText(message, _encodingType);
             var messageSegment = new ArraySegment<byte>(buffer);
 
             await _client.SendAsync(messageSegment, WebSocketMessageType.Text, true, _cancellationToken);
@@ -77,7 +77,7 @@ namespace Bognabot.Services.Exchange
                     {
                         result = await _client.ReceiveAsync(message, _cancellationToken);
 
-                        response.Append(NetUtils.DecodeText(buffer, result.Count, _encodingType));
+                        response.Append(ExchangeUtils.DecodeText(buffer, result.Count, _encodingType));
 
                         if (result.MessageType != WebSocketMessageType.Text)
                             break;

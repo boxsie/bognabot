@@ -11,9 +11,6 @@ namespace Bognabot.Domain.Entities.Instruments
         public double Close { get; set; }
         public double Volume { get; set; }
         public double Trades { get; set; }
-        public string Timestamp { get; set; }
-
-        [IgnoreDataMember]
-        public DateTimeOffset TimestampOffset => DateTimeOffset.Parse(Timestamp);
+        public DateTime Timestamp { get; set; }
     }
 }

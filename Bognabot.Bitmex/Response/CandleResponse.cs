@@ -7,7 +7,7 @@ namespace Bognabot.Bitmex.Response
     public class CandleResponse
     {
         [JsonProperty("timestamp")]
-        public DateTimeOffset Timestamp { get; set; }
+        public DateTime Timestamp { get; set; }
 
         [JsonProperty("symbol")]
         public string Symbol { get; set; }

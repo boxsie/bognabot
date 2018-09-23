@@ -11,8 +11,8 @@ using Bognabot.Bitmex.Socket;
 using Bognabot.Bitmex.Socket.Responses;
 using Bognabot.Data.Config;
 using Bognabot.Data.Exchange;
+using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Exchange.Enums;
-using Bognabot.Data.Exchange.Models;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services.Exchange;
 using Newtonsoft.Json;
@@ -24,7 +24,7 @@ namespace Bognabot.Bitmex
     public class BitmexService : IExchangeService
     {
         public ExchangeConfig ExchangeConfig { get; }
-        public DateTimeOffset Now => BitmexUtils.Now();
+        public DateTime Now => BitmexUtils.Now();
 
         private readonly ILogger _logger;
         private readonly IExchangeSocketClient _socketClient;
@@ -46,23 +46,23 @@ namespace Bognabot.Bitmex
 
         public void ConfigureMap(IMapperConfigurationExpression cfg)
         {
-            cfg.CreateMap<CandleResponse, CandleModel>()
+            cfg.CreateMap<CandleResponse, CandleDto>()
                 .ForMember(d => d.ExchangeName, o => o.MapFrom(s => ExchangeConfig.ExchangeName))
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
                 .ForMember(d => d.Period, o => o.Ignore());
 
-            cfg.CreateMap<TradeResponse, TradeModel>()
+            cfg.CreateMap<TradeResponse, TradeDto>()
                 .ForMember(d => d.ExchangeName, o => o.MapFrom(s => ExchangeConfig.ExchangeName))
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
                 .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)))
                 .ForMember(d => d.Timestamp, o => o.MapFrom(s => BitmexUtils.Now()));
 
-            cfg.CreateMap<BookResponse, BookModel>()
+            cfg.CreateMap<BookResponse, BookDto>()
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => ToInstrumentType(s.Symbol)))
                 .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)));
         }
 
-        public async Task SubscribeToStreamAsync<T>(ExchangeChannel channel, Instrument instrument, IStreamSubscription subscription) where T : ExchangeModel
+        public async Task SubscribeToStreamAsync<T>(ExchangeChannel channel, Instrument instrument, IStreamSubscription subscription) where T : ExchangeDto
         {
             if (!ExchangeConfig.SupportedWebsocketChannels.ContainsKey(channel))
                 return;
@@ -75,7 +75,7 @@ namespace Bognabot.Bitmex
             await _socketClient.SubscribeAsync(GetSocketRequest(instrument, channel));
         }
 
-        public async Task<List<CandleModel>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTimeOffset startTime, DateTimeOffset endTime)
+        public async Task<List<CandleDto>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTime startTime, DateTime endTime)
         {
             var request = new CandleRequest
             {
@@ -87,16 +87,16 @@ namespace Bognabot.Bitmex
                 EndTime = endTime.ToUtcTimeString(),
             };
 
-            var models = await GetAllAsync<CandleModel, CandleResponse, CandleRequest>(ExchangeConfig.SupportedRestChannels[ExchangeChannel.Candle], request);
+            var models = await GetAllAsync<CandleDto, CandleResponse, CandleRequest>(ExchangeConfig.SupportedRestChannels[ExchangeChannel.Candle], request);
 
             foreach (var candleModel in models)
                 candleModel.Period = timePeriod;
 
-            return models;
+            return models.ToList();
         }
 
         private async Task<List<T>> GetAllAsync<T, TY, TTy>(string path, TTy request)
-            where T : ExchangeModel where TTy : ICollectionRequest
+            where T : ExchangeDto where TTy : ICollectionRequest
         {
             var stopwatch = new Stopwatch();
             var total = 0;
@@ -167,7 +167,7 @@ namespace Bognabot.Bitmex
                 if (!timePeriod.HasValue)
                     return false;
 
-                var candleModels = DeserialiseJsonToModel<CandleResponse, CandleModel>(json);
+                var candleModels = DeserialiseJsonToModel<CandleResponse, CandleDto>(json);
 
                 foreach (var model in candleModels)
                     model.Period = timePeriod.Value;
@@ -187,11 +187,11 @@ namespace Bognabot.Bitmex
             if (!table.Contains(tradeChannel))
                 return false;
 
-            await UpdateSubscriptions(channel, DeserialiseJsonToModel<TradeResponse, TradeModel>(json));
+            await UpdateSubscriptions(channel, DeserialiseJsonToModel<TradeResponse, TradeDto>(json));
             return true;
         }
 
-        private TY[] DeserialiseJsonToModel<T, TY>(string json) where TY : ExchangeModel
+        private TY[] DeserialiseJsonToModel<T, TY>(string json) where TY : ExchangeDto
         {
             return JsonConvert.DeserializeObject<BitmexSocketResponseContainer<T>>(json).Data.Select(x => Mapper.Map<TY>(x)).ToArray();
         }

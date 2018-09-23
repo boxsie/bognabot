@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using AutoMapper;
+using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Exchange.Enums;
-using Bognabot.Data.Exchange.Models;
-using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services.Repository;
 using NLog;
 
@@ -14,15 +12,14 @@ namespace Bognabot.Services.Exchange
 {
     public class CandleService
     {
+        private readonly ILogger _logger;
         private readonly RepositoryService _repoService;
         private readonly List<IExchangeService> _exchanges;
-        private readonly ILogger _logger;
         private readonly Dictionary<Instrument, IStreamSubscription> _candleSubscriptions;
         private readonly Dictionary<Instrument, IStreamSubscription> _tradeSubscriptions;
-        private readonly TimePeriod[] _timePeriods;
-        private readonly Dictionary<Instrument, Dictionary<TimePeriod, Dictionary<string, CandleModel>>> _currentCandles;
+        private readonly Dictionary<string, ExchangeCandles> _candleData;
 
-        public CandleService(RepositoryService repoService, IEnumerable<IExchangeService> exchanges, ILogger logger)
+        public CandleService(ILogger logger, RepositoryService repoService, IEnumerable<IExchangeService> exchanges, IndicatorFactory indicatorFactory)
         {
             _repoService = repoService;
             _exchanges = exchanges.ToList();
@@ -32,24 +29,29 @@ namespace Bognabot.Services.Exchange
 
             _candleSubscriptions = new Dictionary<Instrument, IStreamSubscription>();
             _tradeSubscriptions = new Dictionary<Instrument, IStreamSubscription>();
+            _candleData = new Dictionary<string, ExchangeCandles>();
 
             foreach (var instrument in instruments)
             {
-                _candleSubscriptions.Add(instrument, new StreamSubscription<CandleModel>(InsertCandles));
-                _tradeSubscriptions.Add(instrument, new StreamSubscription<TradeModel>(OnNewTrade));
+                _candleSubscriptions.Add(instrument, new StreamSubscription<CandleDto>(OnNewCandle));
+                _tradeSubscriptions.Add(instrument, new StreamSubscription<TradeDto>(OnNewTrade));
+
+                foreach (var exchange in _exchanges)
+                {
+                    foreach (var timePeriod in exchange.ExchangeConfig.SupportedTimePeriods)
+                    {
+                        var exchangeData = new ExchangeCandles(logger, repoService, indicatorFactory, exchange, timePeriod.Key, instrument);
+
+                        _candleData.Add(exchangeData.Key, exchangeData);
+                    }
+                }
             }
-
-            _timePeriods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>().ToArray();
-
-            _currentCandles = instruments.ToDictionary(x => x, 
-                y => _timePeriods.ToDictionary(x => x, 
-                    yy => _exchanges.ToDictionary(xx => xx.ExchangeConfig.ExchangeName, 
-                            yyy => new CandleModel { Period = yy, ExchangeName = yyy.ExchangeConfig.ExchangeName })));
         }
 
         public async Task StartAsync()
         {
-            await Catchup();
+            foreach (var candleData in _candleData.Values)
+                await candleData.LoadAsync();
 
             foreach (var exchange in _exchanges)
             {
@@ -57,157 +59,91 @@ namespace Bognabot.Services.Exchange
 
                 foreach (var instrument in supportedInstruments.Keys)
                 {
-                    await exchange.SubscribeToStreamAsync<CandleModel>(ExchangeChannel.Candle, instrument, _candleSubscriptions[instrument]);
-                    await exchange.SubscribeToStreamAsync<TradeModel>(ExchangeChannel.Trade, instrument, _tradeSubscriptions[instrument]);
+                    await exchange.SubscribeToStreamAsync<CandleDto>(ExchangeChannel.Candle, instrument, _candleSubscriptions[instrument]);
+                    await exchange.SubscribeToStreamAsync<TradeDto>(ExchangeChannel.Trade, instrument, _tradeSubscriptions[instrument]);
                 }
             }
         }
 
-        public CandleModel GetLatestCandle(Instrument instrument, TimePeriod period, string exchangeName)
+        public CandleDto GetLatestCandle(string exchangeName, Instrument instrument, TimePeriod timePeriod)
         {
-            var periodCandles = _currentCandles[instrument][period];
+            var candleData = GetData(exchangeName, instrument, timePeriod);
 
-            return periodCandles.ContainsKey(exchangeName)
-                ? periodCandles[exchangeName]
-                : null;
+            if (candleData != null)
+                return candleData.CurrentCandle;
+
+            _logger.Log(LogLevel.Error, $"{exchangeName} {instrument} {timePeriod} candle data not found");
+            return null;
         }
 
-        private async Task Catchup()
+        public Task<List<CandleDto>> GetCandlesAsync(string exchangeName, Instrument instrument, TimePeriod timePeriod, int dataPoints)
         {
-            var instruments = Enum.GetValues(typeof(Instrument)).Cast<Instrument>();
-            var periods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>();
+            var candleData = GetData(exchangeName, instrument, timePeriod);
 
-            foreach (var instrument in instruments)
-            {
-                foreach (var exchange in _exchanges)
-                {
-                    var supportedPeriods = exchange.ExchangeConfig.SupportedTimePeriods;
-                    var maxPoints = exchange.ExchangeConfig.UserConfig.MaxDataPoints;
+            if (candleData != null)
+                return Task.FromResult(candleData.GetCandles());
 
-                    foreach (var period in supportedPeriods)
-                    {
-                        var candleRepo = await _repoService.GetCandleRepositoryAsync(exchange.ExchangeConfig.ExchangeName, instrument, period.Key);
-                        var lastEntry = await candleRepo.GetLastEntryAsync();
-                        var now = exchange.Now;
+            _logger.Log(LogLevel.Error, $"{exchangeName} {instrument} {timePeriod} candle data not found");
 
-                        var dataPoints = lastEntry != null
-                            ? GetDataPointsFromTimeSpan(period.Key, now - lastEntry.TimestampOffset)
-                            : maxPoints;
-
-                        if (dataPoints <= 0)
-                            continue;
-
-                        if (dataPoints > maxPoints)
-                            dataPoints = maxPoints;
-
-                        var lastEntryLogText = (lastEntry != null ? $"was last seen at {lastEntry.TimestampOffset}" : "has no pevious records");
-                        _logger.Log(LogLevel.Info, $"{exchange.ExchangeConfig.ExchangeName} {instrument} {period.Key} {lastEntryLogText}");
-
-                        var syncStatusText = (dataPoints > 0 ? $"{dataPoints} data points behind" : "up to date");
-                        _logger.Log(LogLevel.Info, $"{exchange.ExchangeConfig.ExchangeName} {instrument} {period.Key} is {syncStatusText}");
-
-                        await InsertCandles(await exchange.GetCandlesAsync(instrument, period.Key, GetTimeOffsetFromDataPoints(period.Key, now, dataPoints), exchange.Now));
-                    }
-                }
-            }
+            return null;
         }
 
-        private async Task InsertCandles(IReadOnlyCollection<CandleModel> candleModels)
+        public Task<ExchangeCandles> GetExchangeCandleDataAsync(string exchangeName, Instrument instrument, TimePeriod timePeriod)
         {
-            if(candleModels == null || !candleModels.Any())
-                return;
-            
-            var lastModel = candleModels.Last();
+            var candleData = GetData(exchangeName, instrument, timePeriod);
 
-            var latestCandle = _currentCandles[lastModel.Instrument][lastModel.Period][lastModel.ExchangeName];
+            if (candleData != null)
+                return Task.FromResult(candleData);
 
-            latestCandle.Open = lastModel.Close;
-            latestCandle.High = lastModel.Close;
-            latestCandle.Low = lastModel.Close;
-            latestCandle.Trades = 0;
-            latestCandle.Volume = 0;
-            latestCandle.Timestamp = GetTimeOffsetFromDataPoints(lastModel.Period, latestCandle.Timestamp, -1);
+            _logger.Log(LogLevel.Error, $"{exchangeName} {instrument} {timePeriod} candle data not found");
 
-            var candleRepo = await _repoService.GetCandleRepositoryAsync(lastModel.ExchangeName, lastModel.Instrument, lastModel.Period);
-            
-            var last = await candleRepo.GetLastEntryAsync();
+            return null;
+        }
 
-            var candles = candleModels.Where(x => last == null || x.Timestamp > last.TimestampOffset).Select(Mapper.Map<Candle>).ToList();
-
-            if (!candles.Any())
+        private async Task OnNewCandle(CandleDto[] arg)
+        {
+            if (arg == null || !arg.Any())
                 return;
 
-            _logger.Log(LogLevel.Debug, $"Inserting {candles.Count} candle records");
+            var last = arg.Last();
 
-            await candleRepo.CreateAsync(candles);
+            var key = ExchangeUtils.GetCandleDataKey(last.ExchangeName, last.Instrument, last.Period);
 
-            _logger.Log(LogLevel.Info, $"{lastModel.ExchangeName} {lastModel.Period} {lastModel.Instrument} candles have been updated");
+            if (!_candleData.ContainsKey(key))
+                return;
+
+            await _candleData[key].InsertCandlesAsync(arg);
         }
-        
-        private Task OnNewTrade(TradeModel[] arg)
+
+        private Task OnNewTrade(TradeDto[] arg)
         {
             if (arg == null || !arg.Any())
                 return Task.CompletedTask;
 
             var last = arg.Last();
 
-            foreach (var period in _timePeriods)
+            var timePeriods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>().ToArray();
+
+            foreach (var period in timePeriods)
             {
-                var candle = _currentCandles[last.Instrument][period][last.ExchangeName];
+                var key = ExchangeUtils.GetCandleDataKey(last.ExchangeName, last.Instrument, period);
 
-                candle.Trades += arg.Length;
-                candle.Volume += arg.Sum(x => x.Size);
+                if (!_candleData.ContainsKey(key))
+                    continue;
 
-                if (last.Price > candle.High)
-                    candle.High = last.Price;
-
-                if (last.Price < candle.Low)
-                    candle.Low = last.Price;
-
-                candle.Close = last.Price;
+                _candleData[key].UpdateCurrentCandle(last.Price, arg.Length, arg.Sum(x => x.Size));
             }
 
             return Task.CompletedTask;
         }
 
-        private DateTimeOffset GetTimeOffsetFromDataPoints(TimePeriod period, DateTimeOffset start, int dataPoints)
+        private ExchangeCandles GetData(string exchangeName, Instrument instrument, TimePeriod period)
         {
-            switch (period)
-            {
-                case TimePeriod.OneMinute:
-                    return start.AddMinutes(-dataPoints);
-                case TimePeriod.FiveMinutes:
-                    return start.AddMinutes(-dataPoints * 5);
-                case TimePeriod.FifteenMinutes:
-                    return start.AddMinutes(-dataPoints * 15);
-                case TimePeriod.OneHour:
-                    return start.AddHours(-dataPoints);
-                case TimePeriod.OneDay:
-                    return start.AddDays(-dataPoints);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(period), period, null);
-            }
-        }
+            var key = ExchangeUtils.GetCandleDataKey(exchangeName, instrument, period);
 
-        private int GetDataPointsFromTimeSpan(TimePeriod period, TimeSpan span)
-        {
-            var mins = (int)span.TotalMinutes;
-
-            switch (period)
-            {
-                case TimePeriod.OneMinute:
-                    return mins;
-                case TimePeriod.FiveMinutes:
-                    return mins / 5;
-                case TimePeriod.FifteenMinutes:
-                    return mins / 15;
-                case TimePeriod.OneHour:
-                    return mins / 60;
-                case TimePeriod.OneDay:
-                    return mins / (24 * 60);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(period), period, null);
-            }
+            return _candleData.ContainsKey(key) 
+                ? _candleData[key] 
+                : null;
         }
     }
 }

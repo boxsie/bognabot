@@ -17,18 +17,18 @@ namespace Bognabot.Services.Jobs.Jobs
     public class SignalsJob : ExchangeSyncJob
     {
         private readonly ILogger _logger;
-        private readonly SignalsService _signalsService;
+        private readonly TraderService _traderService;
 
-        public SignalsJob(ILogger logger, IEnumerable<IExchangeService> exchangeServices, SignalsService signalsService)
+        public SignalsJob(ILogger logger, IEnumerable<IExchangeService> exchangeServices, TraderService traderService)
             : base(logger, exchangeServices, 10)
         {
             _logger = logger;
-            _signalsService = signalsService;
+            _traderService = traderService;
         }
 
         protected override async Task ExecuteOnExchangeAsync(IExchangeService exchangeService, Instrument instrument)
         {
-            await _signalsService.ProcessSignals(exchangeService, instrument);
+            await _traderService.ProcessSignals(exchangeService, instrument);
         }
     }
 }

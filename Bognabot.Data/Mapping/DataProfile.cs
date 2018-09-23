@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Bognabot.Data.Exchange.Models;
+using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Domain.Entities.Instruments;
 
 namespace Bognabot.Data.Mapping
@@ -8,7 +8,7 @@ namespace Bognabot.Data.Mapping
     {
         public DataProfile()
         {
-            CreateMap<CandleModel, Candle>();
+            CreateMap<CandleDto, Candle>();
         }        
     }
 }

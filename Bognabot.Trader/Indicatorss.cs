@@ -1,89 +1,99 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
+using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Domain.Entities.Instruments;
 
 namespace Bognabot.Trader
 {
-    public static class Indicators
+    public static class Indicatorss
     {
-        /// <summary>
-        /// Accelerator/Decelerator oscillator
-        /// </summary>
-        public static double[] AC(double[] prices, int period)
-        {
-            var ao = AO(prices);
-            var smaOfAo = SMA(ao, 5);
-
-            var ac = new double[prices.Length];
-
-            for (var i = 0; i < prices.Length; ++i)
-                ac[i] = ao[i] - smaOfAo[i];
-
-            return ac;
-        }
-
         /// <summary>
         /// Average Directional Movement Index
         /// </summary>
-        public static double[] ADX(double[] prices, int period, Candle[] candles)
+        public static double[] ADX(CandleDto[] candles, int period)
         {
-            var dx = new double[prices.Length];
-            var pDi = DmiPlus(prices, period, candles);
-            var mDi = DmiMinus(prices, period, candles);
+            if (candles.Length < period + 1)
+                throw new IndexOutOfRangeException("The ATR indicator requires period + 1 candles");
 
-            for (var i = 0; i < prices.Length; ++i)
+            var adx = new double[period];
+            var pdi = new double[period];
+            var mdi = new double[period];
+
+            for (var i = 0; i < adx.Length; i++)
             {
-                var diff = pDi[i] + mDi[i];
-                if (diff.IsAlmostZero())
-                {
-                    dx[i] = 0;
-                }
-                else
-                {
-                    dx[i] = 100 * (Math.Abs(pDi[i] - mDi[i]) / (pDi[i] + mDi[i]));
-                }
+                var current = candles[i];
+                var prev = candles[i + 1];
+
+                var p = current.High - prev.High;
+                var m = prev.Low - current.Low;
+
+                if (p.AlmostEqual(m)) p = m = 0;
+                if (p < 0 || m > p) p = 0;
+                if (m < 0 || p > m) m = 0;
+
+                pdi[i] = p; 
+                mdi[i] = m;
             }
 
-            var adx = EMA(dx, period);
+            var atr = WildersSmoothing(ATR(candles));
+            pdi = WildersSmoothing(pdi);
+            mdi = WildersSmoothing(mdi);
 
-            return adx;
-        }
+            for (var i = 0; i < adx.Length; i++)
+            {
+                var tr = atr[i];
+                var p = (pdi[i] / tr) * 100;
+                var m = (mdi[i] / tr) * 100;
 
-        /// <summary>
-        /// Awesome Oscillator
-        /// </summary>
-        public static double[] AO(double[] prices)
-        {
-            var fastSma = SMA(prices, 5);
-            var slowSma = SMA(prices, 34);
-            var ao = new double[prices.Length];
+                adx[i] = 100 * (Math.Abs(p - m) / (p + m));
+            }
 
-            for (var i = 0; i < prices.Length; i++)
-                ao[i] = fastSma[i] - slowSma[i];
-
-            return ao;
+            return WildersSmoothing(adx);
         }
 
         /// <summary>
         /// Average True Range
         /// </summary>
-        public static double[] ATR(int period, Candle[] candles)
+        public static double[] ATR(CandleDto[] candles)
         {
-            var temp = new double[candles.Length];
+            /*
+                To calculate the ATR, the True Range first needs to be discovered. True Range takes into account 
+                the most current period high/low range as well as the previous period close if necessary. 
 
-            temp[0] = 0d;
+                There are three calculation which need to be completed and then compared against each other.
 
-            for (var i = 1; i < candles.Length; i++)
+                The True Range is the largest of the following:
+
+                The Current Period High minus (-) Current Period Low
+                The Absolute Value (abs) of the Current Period High minus (-) The Previous Period Close
+                The Absolute Value (abs) of the Current Period Low minus (-) The Previous Period Close
+
+                true range=max[(high - low), abs(high - previous close), abs (low - previous close)]
+
+                *Absolute Value is used because the ATR does not measure price direction, only volatility. 
+                Therefore there should be no negative numbers.
+
+                *Once you have the True Range, the Average True Range can be plotted. 
+                The ATR is an Exponential Moving Average of the True Range.           
+            */
+
+            var atr = new double[candles.Length - 1];
+            
+            for (var i = 0; i < atr.Length - 1; i++)
             {
-                var diff1 = Math.Abs(candles[i - 1].Close - candles[i].High);
-                var diff2 = Math.Abs(candles[i - 1].Close - candles[i].Low);
-                var diff3 = candles[i].High - candles[i].Low;
+                var current = candles[i];
+                var prev = candles[i + 1];
 
-                var max = diff1 > diff2 ? diff1 : diff2;
-                temp[i] = max > diff3 ? max : diff3;
+                var ranges = new[]
+                {
+                    current.High - current.Low,
+                    Math.Abs(current.High - prev.Close),
+                    Math.Abs(current.Low - prev.Close)
+                };
+
+                atr[i] = ranges.Max();
             }
-
-            var atr = SMA(temp, period);
 
             return atr;
         }
@@ -91,9 +101,9 @@ namespace Bognabot.Trader
         /// <summary>
         /// Average True Range Percentage
         /// </summary>
-        public static double[] ATRP(int period, Candle[] candles)
+        public static double[] ATRP(CandleDto[] candles, int period)
         {
-            var atr = ATR(period, candles);
+            var atr = ATR(candles);
             var atrp = new double[atr.Length];
 
             for (var i = period; i < candles.Length; i++)
@@ -101,55 +111,7 @@ namespace Bognabot.Trader
 
             return atrp;
         }
-
-        /// <summary>
-        /// Bears Power
-        /// </summary>
-        public static double[] BearsPower(double[] prices, int period, Candle[] candles)
-        {
-            var bears = new double[prices.Length];
-
-            var ema = EMA(prices, period);
-
-            for (var i = 0; i < prices.Length; i++)
-                bears[i] = candles[i].Low - ema[i];
-
-            return bears;
-        }
-
-        /// <summary>
-        /// Balance Of Power
-        /// </summary>
-        public static double[] BOP(Candle[] candles)
-        {
-            var bop = new double[candles.Length];
-
-            for (var i = 0; i < candles.Length; i++)
-            {
-                if (candles[i].High.AlmostEqual(candles[i].Low))
-                    bop[i] = 0;
-                else
-                    bop[i] = (candles[i].Close - candles[i].Open) / (candles[i].High - candles[i].Low);
-            }
-
-            return bop;
-        }
-
-        /// <summary>
-        /// Bulls Power
-        /// </summary>
-        public static double[] BullsPower(double[] prices, int period, Candle[] candles)
-        {
-            var bulls = new double[prices.Length];
-
-            var ema = EMA(prices, period);
-
-            for (var i = 0; i < prices.Length; i++)
-                bulls[i] = candles[i].High - ema[i];
-
-            return bulls;
-        }
-
+        
         /// <summary>
         /// Center of Gravity oscillator
         /// </summary>
@@ -177,7 +139,7 @@ namespace Bognabot.Trader
         /// <summary>
         /// Commodity Channel Index
         /// </summary>
-        public static double[] CCI(int period, Candle[] candles)
+        public static double[] CCI(CandleDto[] candles, int period)
         {
             /*
              CCI = (Typical Price - n-period SMA of TP) / (.015 x Mean Deviation)
@@ -205,7 +167,7 @@ namespace Bognabot.Trader
                 var tpAverage = typicalPrices.Average();
                 var meanDeviation = typicalPrices.Select(tp => Math.Abs(tp - tpAverage)).Sum() / period;
 
-                cci[i] = (typicalPrices.First() - SMA(typicalPrices, period).First()) / (0.015d * meanDeviation);
+                cci[i] = (typicalPrices.First() - typicalPrices.Average()) / (0.015d * meanDeviation);
             }
 
             return cci;
@@ -214,7 +176,7 @@ namespace Bognabot.Trader
         /// <summary>
         /// Chande Momentum Oscillator
         /// </summary>
-        public static double[] CMO(int period, Candle[] candles)
+        public static double[] CMO(CandleDto[] candles, int period)
         {
             if (candles.Length < period + 1)
                 throw new IndexOutOfRangeException("The CMO indicator requires period + 1 candles");
@@ -257,102 +219,43 @@ namespace Bognabot.Trader
         }
 
         /// <summary>
-        /// Directional Movement Index Minus
+        /// Exponential Moving Average
         /// </summary>
-        public static double[] DmiMinus(double[] prices, int period, Candle[] candles)
+        public static double[] EMA(double[] values)
         {
-            var pdm = new double[prices.Length];
-
-            pdm[0] = 0d;
-
-            for (var i = 1; i < prices.Length; ++i)
+            var ema = new double[values.Length];
+            var k = 2 / (ema.Length + 1);
+            
+            for (var i = 0; i < ema.Length; i++)
             {
-                var plusDm = candles[i].High - candles[i - 1].High;
-                var minusDm = candles[i - 1].Low - candles[i].Low;
+                var prevEma = i == ema.Length - 1 
+                    ? values.Average() 
+                    : ema[i - 1];
 
-                if (plusDm < 0)
-                    plusDm = 0;
-
-                if (minusDm < 0)
-                    minusDm = 0;
-
-                if (plusDm.AlmostEqual(minusDm))
-                    plusDm = 0;
-                else if (plusDm < minusDm)
-                    plusDm = 0;
-
-                var trueHigh = candles[i].High > prices[i - 1] ? candles[i].High : prices[i - 1];
-                var trueLow = candles[i].Low < prices[i - 1] ? candles[i].Low : prices[i - 1];
-                var tr = trueHigh - trueLow;
-
-                if (tr.IsAlmostZero())
-                    pdm[i] = 0;
-                else
-                    pdm[i] = 100 * plusDm / tr;
+                ema[i] = prevEma * (ema.Length - 1) + values[i] * k + prevEma * (1 - k);
             }
 
-            var dmi = EMA(pdm, period);
-
-            return dmi;
-        }
-
-        /// <summary>
-        /// Directional Movement Index Plus
-        /// </summary>
-        public static double[] DmiPlus(double[] prices, int period, Candle[] candles)
-        {
-            var mdm = new double[prices.Length];
-
-            mdm[0] = 0d;
-
-            for (var i = 1; i < prices.Length; ++i)
-            {
-                var plusDm = candles[i].High - candles[i - 1].High;
-                var minusDm = candles[i - 1].Low - candles[i].Low;
-
-                if (plusDm < 0)
-                    plusDm = 0;
-
-                if (minusDm < 0)
-                    minusDm = 0;
-
-                if (plusDm.AlmostEqual(minusDm))
-                    minusDm = 0;
-                else if (plusDm >= minusDm)
-                    minusDm = 0;
-
-                var trueHigh = candles[i].High > prices[i - 1] ? candles[i].High : prices[i - 1];
-                var trueLow = candles[i].Low < prices[i - 1] ? candles[i].Low : prices[i - 1];
-
-                var tr = trueHigh - trueLow;
-
-                if (tr.IsAlmostZero())
-                    mdm[i] = 0;
-                else
-                    mdm[i] = 100 * minusDm / tr;
-            }
-
-            var dmi = EMA(mdm, period);
-
-            return dmi;
+            return ema.Reverse().ToArray();
         }
 
         /// <summary>
         /// Exponential Moving Average
         /// </summary>
-        public static double[] EMA(double[] prices, int period)
+        public static double[] EMA(double[] values, int period)
         {
-            var ema = new double[prices.Length];
-            var sum = prices[0];
-            var coeff = 2.0 / (1.0 + period);
+            var ema = new double[values.Length];
+            var k = 2 / (ema.Length + 1);
 
-            for (var i = 0; i < prices.Length; i++)
+            for (var i = 0; i < ema.Length; i++)
             {
-                sum += coeff * (prices[i] - sum);
-                ema[i] = sum;
+                var prevEma = i == ema.Length - 1
+                    ? values.Average()
+                    : ema[i - 1];
+
+                ema[i] = prevEma * (ema.Length - 1) + values[i] * k + prevEma * (1 - k);
             }
 
-            return ema;
+            return ema.Reverse().ToArray();
         }
 
         /// <summary>
@@ -465,7 +368,7 @@ namespace Bognabot.Trader
         /// <summary>
         /// Money Flow Index
         /// </summary>
-        public static double[] MFI(int period, Candle[] candles)
+        public static double[] MFI(CandleDto[] candles, int period)
         {
             if (candles.Length < period + 1)
                 throw new IndexOutOfRangeException("The MFI indicator requires period + 1 candles");
@@ -582,49 +485,9 @@ namespace Bognabot.Trader
         }
 
         /// <summary>
-        /// Simple Moving Average
-        /// </summary>
-        public static double[] SMA(double[] prices, int period)
-        {
-            /*
-             A 5-day simple moving average is the five-day sum of closing prices divided by five
-            */
-
-            var sma = new double[prices.Length - (period - 1)];
-
-            for (var i = 0; i < sma.Length; i++)
-                sma[i] = prices.Skip(i).Take(period).Sum() / period;
-
-            return sma;
-        }
-
-        /// <summary>
-        /// Triple-smoothed Exponential Moving Average
-        /// </summary>
-        public static double[] TRIX(double[] prices, int period)
-        {
-            var trix = new double[prices.Length];
-            var ema1 = EMA(prices, period);
-            var ema2 = EMA(ema1, period);
-            var ema3 = EMA(ema2, period);
-
-            trix[0] = 0.0;
-
-            for (var i = 1; i < prices.Length; ++i)
-            {
-                if (ema3[i].IsAlmostZero())
-                    trix[i] = 0.0;
-                else
-                    trix[i] = 100.0 * ((ema3[i] - ema3[i - 1]) / ema3[i]);
-            }
-
-            return trix;
-        }
-
-        /// <summary>
         /// Williams Percent Range
         /// </summary>
-        public static double[] WPR(double[] prices, int period, Candle[] candles)
+        public static double[] WPR(double[] prices, int period, CandleDto[] candles)
         {
             var wpr = new double[prices.Length];
 
@@ -646,6 +509,30 @@ namespace Bognabot.Trader
             }
 
             return wpr;
+        }
+
+        /// <summary>
+        /// Wilder's Smoothing Techniques
+        /// </summary>
+        private static double[] WildersSmoothing(double[] vals)
+        {
+            var wst = new double[vals.Length];
+
+            wst[0] = vals.Average();
+
+            for (var i = 1; i < wst.Length; i++)
+            {
+                var prev = wst[i - 1];
+
+                wst[i] = prev + (vals[i] - prev) / vals.Length;
+            }
+
+            return wst;
+        }
+
+        private static double[] CreateIndicatorArray(int valLen, int period)
+        {
+            return new double[valLen - (period - 1)];
         }
     }
 }

@@ -110,7 +110,7 @@ namespace Bognabot.Services.Repository
 
         public async Task<IEnumerable<T>> GetLastEntriesAsync(int limit = 0)
         {
-            var sql = $"SELECT * FROM {_tableName} ORDER BY ROWID DESC {(limit > 0 ? $"LIMIT {limit}" : "" )};";
+            var sql = $"SELECT * FROM {_tableName} t ORDER BY t.Timestamp DESC {(limit > 0 ? $"LIMIT {limit}" : "" )};";
 
             try
             {
@@ -133,7 +133,7 @@ namespace Bognabot.Services.Repository
 
         public async Task<T> GetLastEntryAsync()
         {
-            var sql = $"SELECT * FROM {_tableName} WHERE ROWID = (SELECT MAX(ROWID) FROM '{_tableName}');";
+            var sql = $"SELECT * FROM {_tableName} t ORDER BY t.Timestamp DESC LIMIT 1";
 
             try
             {
@@ -160,7 +160,14 @@ namespace Bognabot.Services.Repository
             var dp = new DynamicParameters();
 
             foreach (var prop in props)
-                dp.Add(prop.Name, prop.GetValue(entity));
+            {
+                var val = prop.GetValue(entity);
+
+                if (prop == typeof(DateTime))
+                    val = ((DateTime) val).Ticks;
+
+                dp.Add(prop.Name, val);
+            }
 
             return dp;
         }
@@ -205,7 +212,6 @@ namespace Bognabot.Services.Repository
                 case "String":
                     return "varchar(255)";
                 case "DateTime":
-                case "DateTimeOffset":
                     return "datetime";
                 default:
                     throw new NotSupportedException();

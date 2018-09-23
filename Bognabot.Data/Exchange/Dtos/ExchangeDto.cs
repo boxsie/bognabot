@@ -2,12 +2,12 @@
 using Bognabot.Data.Exchange.Enums;
 using Newtonsoft.Json;
 
-namespace Bognabot.Data.Exchange.Models
+namespace Bognabot.Data.Exchange.Dtos
 {
-    public abstract class ExchangeModel
+    public abstract class ExchangeDto
     {
         public string ExchangeName { get; set; }
         public Instrument Instrument { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
+        public DateTime Timestamp { get; set; }
     }
 }

@@ -6,7 +6,7 @@ using Bognabot.Data.Exchange.Enums;
 
 namespace Bognabot.Services.Exchange
 {
-    public static class NetUtils
+    public static class ExchangeUtils
     {
         public static string BuildQueryString(this IDictionary<string, string> param)
         {
@@ -58,6 +58,51 @@ namespace Bognabot.Services.Exchange
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
+
+        public static DateTime GetTimeOffsetFromDataPoints(TimePeriod period, DateTime start, int dataPoints)
+        {
+            switch (period)
+            {
+                case TimePeriod.OneMinute:
+                    return start.AddMinutes(-dataPoints);
+                case TimePeriod.FiveMinutes:
+                    return start.AddMinutes(-dataPoints * 5);
+                case TimePeriod.FifteenMinutes:
+                    return start.AddMinutes(-dataPoints * 15);
+                case TimePeriod.OneHour:
+                    return start.AddHours(-dataPoints);
+                case TimePeriod.OneDay:
+                    return start.AddDays(-dataPoints);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(period), period, null);
+            }
+        }
+
+        public static int GetDataPointsFromTimeSpan(TimePeriod period, TimeSpan span)
+        {
+            var mins = (int)span.TotalMinutes;
+
+            switch (period)
+            {
+                case TimePeriod.OneMinute:
+                    return mins;
+                case TimePeriod.FiveMinutes:
+                    return mins / 5;
+                case TimePeriod.FifteenMinutes:
+                    return mins / 15;
+                case TimePeriod.OneHour:
+                    return mins / 60;
+                case TimePeriod.OneDay:
+                    return mins / (24 * 60);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(period), period, null);
+            }
+        }
+
+        public static string GetCandleDataKey(string exchangeName, Instrument instrument, TimePeriod period)
+        {
+            return $"{exchangeName}_{instrument}_{period}_Candles";
         }
     }
 }

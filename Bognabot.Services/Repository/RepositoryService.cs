@@ -10,6 +10,7 @@ using Bognabot.Data.Config.Contracts;
 using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Services.Exchange;
 using Bognabot.Storage.Core;
 using NLog;
 using IExchangeService = Bognabot.Services.Exchange.IExchangeService;
@@ -37,12 +38,12 @@ namespace Bognabot.Services.Repository
         {
             var repo = new Repository<Candle>(_logger);
 
-            var tableName = GetCandleTableName(exchangeName, instrument, period);
+            var tableName = ExchangeUtils.GetCandleDataKey(exchangeName, instrument, period);
 
             if (_availableTables.All(x => x != tableName))
                 throw new IndexOutOfRangeException();
 
-            await repo.CreateTable(GetConnectionString(), GetCandleTableName(exchangeName, instrument, period));
+            await repo.CreateTable(GetConnectionString(), ExchangeUtils.GetCandleDataKey(exchangeName, instrument, period));
             
             return repo;
         }
@@ -80,7 +81,7 @@ namespace Bognabot.Services.Repository
 
                     foreach (var period in supportedPeriods)
                     {
-                        _availableTables.Add(GetCandleTableName(exchange.ExchangeName, instrument, period.Key));
+                        _availableTables.Add(ExchangeUtils.GetCandleDataKey(exchange.ExchangeName, instrument, period.Key));
                     }
                 }
             }
@@ -89,11 +90,6 @@ namespace Bognabot.Services.Repository
         private string GetConnectionString()
         {
             return $"Data Source={StorageUtils.PathCombine(Cfg.UserDataPath, _generalConfig.DbFilename)};";
-        }
-
-        private static string GetCandleTableName(string exchangeName, Instrument instrument, TimePeriod period)
-        {
-            return $"{exchangeName}_{instrument}_{period}_Candles";
         }
     }
 }

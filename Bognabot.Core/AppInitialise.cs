@@ -9,6 +9,7 @@ using Bognabot.Data;
 using Bognabot.Data.Config;
 using Bognabot.Data.Config.Contracts;
 using Bognabot.Data.Exchange;
+using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Mapping;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services;
@@ -20,6 +21,7 @@ using Bognabot.Services.Trader;
 using Bognabot.Storage.Core;
 using Bognabot.Storage.Stores;
 using Bognabot.Trader;
+using Bognabot.Trader.Indicators;
 using Bognabot.Trader.Signals;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -61,13 +63,17 @@ namespace Bognabot.Core
             services.AddSingleton<RepositoryService>();
             services.AddSingleton<CandleService>();
             services.AddSingleton<JobService>();
-            services.AddSingleton<SignalsService>();
+            services.AddSingleton<TraderService>();
 
             services.AddTransient<IRepository<Candle>, Repository<Candle>>();
 
             services.AddTransient<SignalsJob>();
 
             services.AddTransient<ISignal, OverBoughtOverSoldSignal>();
+
+            services.AddTransient<IndicatorFactory>();
+            services.AddTransient<IIndicator, SMA>();
+            services.AddTransient<IIndicator, EMA>();
         }
 
         public static void LoadUserData(IServiceProvider serviceProvider, string appRootPath)
@@ -80,6 +86,12 @@ namespace Bognabot.Core
 
                 foreach (var exchangeService in exchangeServices)
                     exchangeService.ConfigureMap(cfg);
+
+                cfg.CreateMap<Candle, CandleDto>()
+                    .ForMember(d => d.Timestamp, o => o.MapFrom(s => s.Timestamp))
+                    .ForMember(d => d.Instrument, m => m.Ignore())
+                    .ForMember(d => d.ExchangeName, m => m.Ignore())
+                    .ForMember(d => d.Period, m => m.Ignore());
             });
 
             Cfg.InitialiseConfig(serviceProvider.GetServices<IConfig>());

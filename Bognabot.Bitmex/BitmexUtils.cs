@@ -16,17 +16,12 @@ namespace Bognabot.Bitmex
 {
     public static class BitmexUtils
     {
-        public static DateTimeOffset Now()
+        public static DateTime Now()
         {
-            return DateTimeOffset.UtcNow;
+            return DateTime.UtcNow;
         }
 
-        public static long NowSeconds()
-        {
-            return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        }
-
-        public static string ToUtcTimeString(this DateTimeOffset dateTime)
+        public static string ToUtcTimeString(this DateTime dateTime)
         {
             return dateTime.ToString("yyy-MM-ddTHH:mm:ss.fffZ");
         }
@@ -89,7 +84,14 @@ namespace Bognabot.Bitmex
 
         private static long Expires()
         {
-            return DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 3600;
+            return DateTime.UtcNow.ToUnixTimestamp() + 3600;
+        }
+
+        private static long ToUnixTimestamp(this DateTime d)
+        {
+            var epoch = d - new DateTime(1970, 1, 1, 0, 0, 0);
+
+            return (long)epoch.TotalSeconds;
         }
     }
 }

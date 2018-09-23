@@ -1,9 +1,9 @@
 ﻿using System;
 using Bognabot.Data.Exchange.Enums;
 
-namespace Bognabot.Data.Exchange.Models
+namespace Bognabot.Data.Exchange.Dtos
 {
-    public class TradeModel : ExchangeModel
+    public class TradeDto : ExchangeDto
     {
         public TradeType Side { get; set; }
         public long Size { get; set; }

@@ -8,6 +8,6 @@ namespace Bognabot.Domain.Entities.Account
     public class Trade : IEntity
     {
         public int TradeId { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
+        public DateTime Timestamp { get; set; }
     }
 }
