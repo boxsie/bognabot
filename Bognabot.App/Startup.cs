@@ -10,6 +10,7 @@ using Bognabot.Core;
 using Bognabot.Data;
 using Bognabot.Data.Config;
 using Bognabot.Data.Config.Contracts;
+using Bognabot.Data.Exchange.Enums;
 using Bognabot.Data.Mapping;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services;
@@ -18,6 +19,7 @@ using Bognabot.Services.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using NLog.Web;
@@ -69,12 +71,24 @@ namespace Bognabot.App
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
 
-            app.UseSignalR(routes =>
-            {
-                routes.MapHub<StreamHub>("/streamhub");
-            });
+            
+
+            app.UseSignalR(routes => Configure(serviceProvider, routes));
 
             ConfigureApp(serviceProvider);
+        }
+
+        private void Configure(IServiceProvider serviceProvider, HubRouteBuilder routes)
+        {
+            var exchangeServices = serviceProvider.GetServices<IExchangeService>();
+
+            foreach (var exchangeService in exchangeServices)
+            {
+                foreach (var instrument in exchangeService.ExchangeConfig.SupportedInstruments)
+                {
+                    routes.MapHub<ExchangeInstrumentHub>(AppUtils.GetHubRoute(exchangeService.ExchangeConfig.ExchangeName, instrument.Key));
+                }
+            }
         }
 
         private void ConfigureApp(IServiceProvider serviceProvider)
@@ -85,6 +99,14 @@ namespace Bognabot.App
 
             Task.Run(() => AppInitialise.Start(sm));
             Task.Run(ElectronBootstrap.InitAsync);
+        }
+    }
+
+    public static class AppUtils
+    {
+        public static string GetHubRoute(string exchangeName, Instrument instrument)
+        {
+            return $"/{exchangeName.ToLower()}{instrument.ToString().ToLower()}hub";
         }
     }
 }

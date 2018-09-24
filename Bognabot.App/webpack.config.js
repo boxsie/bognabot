@@ -11,7 +11,8 @@ const filenameCssChunk = 'css/[id].css';
 module.exports = {
     entry: {
         'layout': baseScriptsPath + 'layout.js',
-        'signals.index': baseScriptsPath + 'Controllers/signals.index.js'
+        'signals.index': baseScriptsPath + 'Controllers/signals.index.js',
+        'indicators.index': baseScriptsPath + 'Controllers/indicators.index.js'
     },
     output: {
         path: webRoot,

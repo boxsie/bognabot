@@ -12,7 +12,12 @@
 <body>
 <div id="main">
     <div id="sidebar">
-        @Html.ActionLink("Signals", "index", "signals")
+        <ul>
+            <li>@Html.ActionLink("Signals", "index", "signals")</li>
+            <li>@Html.ActionLink("Indicators", "index", "indicators")</li>
+        </ul>
+        
+        
     </div>
     <div id="content">
         @RenderBody()

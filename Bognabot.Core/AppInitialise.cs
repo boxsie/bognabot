@@ -72,8 +72,14 @@ namespace Bognabot.Core
             services.AddTransient<ISignal, OverBoughtOverSoldSignal>();
 
             services.AddTransient<IndicatorFactory>();
-            services.AddTransient<IIndicator, SMA>();
+
+            services.AddTransient<IIndicator, ADX>();
+            services.AddTransient<IIndicator, ATR>();
+            services.AddTransient<IIndicator, CCI>();
+            services.AddTransient<IIndicator, CMO>();
             services.AddTransient<IIndicator, EMA>();
+            services.AddTransient<IIndicator, MFI>();
+            services.AddTransient<IIndicator, SMA>();
         }
 
         public static void LoadUserData(IServiceProvider serviceProvider, string appRootPath)

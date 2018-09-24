@@ -11,67 +11,56 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Bognabot.App.Hubs
 {
-    public class SignalData
+    public class SignalMessage
     {
         public string SignalId { get; set; }
         public TimePeriod TimePeriod { get; set; }
         public SignalStrength SignalStrength { get; set; }
     }
 
-    public class SignalsControl
+    public class IndicatorMessage
     {
-        private readonly IHubContext<StreamHub> _hub;
+        public string IndicatorName { get; set; }
+        public string ExchangeName { get; set; }
+        public Instrument Instrument { get; set; }
+        public TimePeriod Period { get; set; }
+        public double Current { get; set; }
+    }
 
-        public SignalsControl(IHubContext<StreamHub> hub)
+    public class TradeHubControl
+    {
+        private readonly IHubContext<ExchangeInstrumentHub> _hub;
+        private Dictionary<string, Channel<IndicatorMessage>> _indicatorChannels;
+
+        public TradeHubControl(IHubContext<ExchangeInstrumentHub> hub)
         {
             _hub = hub;
+            _indicatorChannels = new Dictionary<string, Channel<IndicatorMessage>>();
         }
 
-        public IObservable<SignalData> StreamLatestPrice()
+        public ChannelReader<IndicatorMessage> StreamIndicator()
         {
-            return null;
-        }
-    }
+            var channel = Channel.CreateUnbounded<IndicatorMessage>();
 
-    public class StreamHub : Hub
-    {
-        private readonly SignalsControl _signalControl;
 
-        public StreamHub(SignalsControl signalControl)
-        {
-            _signalControl = signalControl;
-        }
-
-        public ChannelReader<SignalData> StreamStocks()
-        {
-            return null;// _priceControl.StreamLatestPrice().AsChannelReader(10);
+            return channel.Reader;
         }
     }
 
-    public static class ObservableExtensions
+    public class ExchangeInstrumentHub : Hub
     {
-        public static ChannelReader<T> AsChannelReader<T>(this IObservable<T> observable, int? maxBufferSize = null)
+        private readonly TradeHubControl _tradeHubControl;
+
+        public ExchangeInstrumentHub(TradeHubControl tradeHubControl)
         {
-            // This sample shows adapting an observable to a ChannelReader without 
-            // back pressure, if the connection is slower than the producer, memory will
-            // start to increase.
+            _tradeHubControl = tradeHubControl;
+            
+            base.
+        }
 
-            //// If the channel is bounded, TryWrite will return false and effectively
-            //// drop items.
-
-            //// The other alternative is to use a bounded channel, and when the limit is reached
-            //// block on WaitToWriteAsync. This will block a thread pool thread and isn't recommended and isn't shown here.
-            //var channel = maxBufferSize != null ? Channel.CreateBounded<T>(maxBufferSize.Value) : Channel.CreateUnbounded<T>();
-
-            //var disposable = observable.Subscribe(
-            //    value => channel.Writer.TryWrite(value),
-            //    error => channel.Writer.TryComplete(error),
-            //    () => channel.Writer.TryComplete());
-
-            //// Complete the subscription on the reader completing
-            //channel.Reader.Completion.ContinueWith(task => disposable.Dispose());
-
-            return null; //channel.Reader;
+        public ChannelReader<IndicatorMessage> StreamIndicator(string indicatorName)
+        {
+            return _tradeHubControl.StreamIndicator();
         }
     }
 }

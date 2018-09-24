@@ -38,6 +38,22 @@ namespace Bognabot.Trader
             return Math.Clamp((val - min) / (max - min), 0, 1);
         }
 
+        public static double[] WildersSmoothing(double[] vals)
+        {
+            var wst = new double[vals.Length];
+            
+            wst[vals.Length - 1] = vals.Average();
+
+            for (var i = wst.Length - 2; i >= 0; i--)
+            {
+                var prev = wst[i + 1];
+
+                wst[i] = prev + (vals[i] - prev) / vals.Length;
+            }
+
+            return wst;
+        }
+
 
         /// <summary>
         /// Takes a value from 0 to 1 and converts it to a value between 0 and N

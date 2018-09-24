@@ -6,6 +6,7 @@ using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Data.Trader.Enums;
 using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Trader.Indicators;
 
 namespace Bognabot.Trader.Signals
 {
@@ -28,9 +29,9 @@ namespace Bognabot.Trader.Signals
 
         public Task<SignalStrength> ProcessSignalAsync(TimePeriod timePeriod, CandleDto[] candles)
         {
-            var cmo = Indicatorss.CMO(candles, 9);
-            var cci = Indicatorss.CCI(candles, 20);
-            var mfi = Indicatorss.MFI(candles, 14);
+            var cmo = new CMO().Calculate(candles, 9);
+            var cci = new CCI().Calculate(candles, 20);
+            var mfi = new MFI().Calculate(candles, 14);
 
             var cmoUnit = TraderUtils.NormaliseAndClamp(cmo.First(), -50, 50);
             var cciUnit = TraderUtils.NormaliseAndClamp(cci.First(), -100, 100);

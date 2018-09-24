@@ -1,0 +1,62 @@
+﻿
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="indicators" class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3">
+            <div class="card">
+                <div class="card-header">
+                    ADX
+                </div>
+                <div class="card-body">
+                    1.123
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card">
+                <div class="card-header">
+                    ATR
+                </div>
+                <div class="card-body">
+                    1.123
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card">
+                <div class="card-header">
+                    CCI
+                </div>
+                <div class="card-body">
+                    1.123
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card">
+                <div class="card-header">
+                    CMO
+                </div>
+                <div class="card-body">
+                    1.123
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+@section Scripts
+{
+    <script src="js/indicators.index.js"></script>
+    <script language="javascript">
+        var vm = new bognabot.IndicatorsViewModel({
+
+        });
+    </script>
+}
+
