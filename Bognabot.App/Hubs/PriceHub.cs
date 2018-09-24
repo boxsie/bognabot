@@ -54,8 +54,6 @@ namespace Bognabot.App.Hubs
         public ExchangeInstrumentHub(TradeHubControl tradeHubControl)
         {
             _tradeHubControl = tradeHubControl;
-            
-            base.
         }
 
         public ChannelReader<IndicatorMessage> StreamIndicator(string indicatorName)
