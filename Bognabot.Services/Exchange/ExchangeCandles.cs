@@ -6,6 +6,8 @@ using AutoMapper;
 using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Services.Exchange.Contracts;
+using Bognabot.Services.Exchange.Factories;
 using Bognabot.Services.Repository;
 using Bognabot.Trader;
 using NLog;
@@ -14,28 +16,30 @@ namespace Bognabot.Services.Exchange
 {
     public class ExchangeCandles
     {
-        public string Key => ExchangeUtils.GetCandleDataKey(_exchange.ExchangeConfig.ExchangeName, _instrument, _period);
+        public string Key => ExchangeUtils.GetCandleDataKey(_exchangeName, _instrument, _period);
         public CandleDto CurrentCandle { get; }
 
         private readonly ILogger _logger;
         private readonly RepositoryService _repoService;
-        private readonly IndicatorFactory _indicatorFactory;
         private readonly IExchangeService _exchange;
+        private readonly IndicatorFactory _indicatorFactory;
         private readonly TimePeriod _period;
         private readonly Instrument _instrument;
+        private readonly string _exchangeName;
 
         private List<CandleDto> _candles;
 
-        public ExchangeCandles(ILogger logger, RepositoryService repoService, IndicatorFactory indicatorFactory, IExchangeService exchange, TimePeriod period, Instrument instrument)
+        public ExchangeCandles(ILogger logger, RepositoryService repoService, IExchangeService exchange, IndicatorFactory indicatorFactory, TimePeriod period, Instrument instrument)
         {
             _logger = logger;
             _repoService = repoService;
-            _indicatorFactory = indicatorFactory;
             _exchange = exchange;
+            _indicatorFactory = indicatorFactory;
             _period = period;
             _instrument = instrument;
+            _exchangeName = _exchange.ExchangeConfig.ExchangeName;
 
-            CurrentCandle = new CandleDto { ExchangeName = exchange.ExchangeConfig.ExchangeName, Period = _period, Instrument = _instrument };
+            CurrentCandle = new CandleDto { ExchangeName = _exchangeName, Period = _period, Instrument = _instrument };
         }
         
         public double[] Indicate<T>(int dataPoints, bool includeNow = true) where T : IIndicator
@@ -48,11 +52,11 @@ namespace Bognabot.Services.Exchange
 
         public async Task LoadAsync()
         {
-            var candleRepo = await _repoService.GetCandleRepositoryAsync(_exchange.ExchangeConfig.ExchangeName, _instrument, _period);
+            var candleRepo = await _repoService.GetCandleRepositoryAsync(_exchangeName, _instrument, _period);
 
             if (candleRepo == null)
             {
-                _logger.Log(LogLevel.Error, $"{_exchange.ExchangeConfig.ExchangeName} {_instrument} {_period} repository not found");
+                _logger.Log(LogLevel.Error, $"{_exchangeName} {_instrument} {_period} repository not found");
                 return;
             }
 
@@ -61,16 +65,16 @@ namespace Bognabot.Services.Exchange
             _candles = dbCandles.Select(Mapper.Map<CandleDto>).Select(x =>
             {
                 x.Instrument = _instrument;
-                x.ExchangeName = _exchange.ExchangeConfig.ExchangeName;
+                x.ExchangeName = _exchangeName;
                 x.Period = _period;
 
                 return x;
             }).ToList();
 
             if (!_candles.Any())
-                _logger.Log(LogLevel.Warn, $"{_exchange.ExchangeConfig.ExchangeName} {_instrument} {_period} could not load any candles");
+                _logger.Log(LogLevel.Warn, $"{_exchangeName} {_instrument} {_period} could not load any candles");
             else
-                _logger.Log(LogLevel.Debug, $"{_exchange.ExchangeConfig.ExchangeName} {_instrument} {_period} candle load complete");
+                _logger.Log(LogLevel.Debug, $"{_exchangeName} {_instrument} {_period} candle load complete");
 
             await CatchupAsync(await candleRepo.GetLastEntryAsync());
         }
@@ -93,7 +97,7 @@ namespace Bognabot.Services.Exchange
 
             ResetCurrentCandle(candleDtos.First());
 
-            var candleRepo = await _repoService.GetCandleRepositoryAsync(_exchange.ExchangeConfig.ExchangeName, _instrument, _period);
+            var candleRepo = await _repoService.GetCandleRepositoryAsync(_exchangeName, _instrument, _period);
 
             var last = await candleRepo.GetLastEntryAsync();
 
@@ -111,7 +115,7 @@ namespace Bognabot.Services.Exchange
 
             _candles.InsertRange(0, candleDtos);
 
-            _logger.Log(LogLevel.Info, $"{_exchange.ExchangeConfig.ExchangeName} {_instrument} {_period} candles have been updated");
+            _logger.Log(LogLevel.Info, $"{_exchangeName} {_instrument} {_period} candles have been updated");
         }
 
         public void UpdateCurrentCandle(double price, int trades, double volume)
@@ -149,10 +153,10 @@ namespace Bognabot.Services.Exchange
                 await InsertCandlesAsync(candles.ToArray());
 
             var lastEntryLogText = (lastDbCandle != null ? $"was last seen at {lastDbCandle.Timestamp.ToUniversalTime()}" : "has no pevious records");
-            _logger.Log(LogLevel.Info, $"{_exchange.ExchangeConfig.ExchangeName} {_instrument} {_period} {lastEntryLogText}");
+            _logger.Log(LogLevel.Info, $"{_exchangeName} {_instrument} {_period} {lastEntryLogText}");
 
             var syncStatusText = (dataPoints > 0 ? $"{dataPoints} data points behind" : "up to date");
-            _logger.Log(LogLevel.Info, $"{_exchange.ExchangeConfig.ExchangeName} {_instrument} {_period} is {syncStatusText}");
+            _logger.Log(LogLevel.Info, $"{_exchangeName} {_instrument} {_period} is {syncStatusText}");
         }
 
         private void ResetCurrentCandle(CandleDto latest)

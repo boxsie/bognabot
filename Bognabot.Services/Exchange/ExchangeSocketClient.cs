@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Enums;
+using Bognabot.Services.Exchange.Contracts;
 using NLog;
 
 namespace Bognabot.Services.Exchange

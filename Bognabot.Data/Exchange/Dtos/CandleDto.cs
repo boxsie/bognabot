@@ -1,4 +1,5 @@
-﻿using Bognabot.Data.Exchange.Enums;
+﻿using System;
+using Bognabot.Data.Exchange.Enums;
 
 namespace Bognabot.Data.Exchange.Dtos
 {

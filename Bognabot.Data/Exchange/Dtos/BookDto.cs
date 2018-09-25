@@ -5,7 +5,7 @@ namespace Bognabot.Data.Exchange.Dtos
 {
     public class BookDto : ExchangeDto
     {
-        public TradeType Side { get; set; }
+        public TradeSide Side { get; set; }
         public long Size { get; set; }
         public double Price { get; set; }
     }

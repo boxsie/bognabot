@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Services.Exchange;
+using Bognabot.Services.Exchange.Contracts;
 using NLog;
 using Quartz;
 

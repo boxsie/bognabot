@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Bognabot.Services.Exchange
+namespace Bognabot.Services.Exchange.Contracts
 {
     public interface IExchangeSocketClient
     {

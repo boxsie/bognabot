@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using AutoMapper;
+using Bognabot.Bitmex;
 using Bognabot.Data;
 using Bognabot.Data.Config;
 using Bognabot.Data.Config.Contracts;
@@ -14,6 +15,8 @@ using Bognabot.Data.Mapping;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services;
 using Bognabot.Services.Exchange;
+using Bognabot.Services.Exchange.Contracts;
+using Bognabot.Services.Exchange.Factories;
 using Bognabot.Services.Jobs;
 using Bognabot.Services.Jobs.Jobs;
 using Bognabot.Services.Repository;
@@ -38,25 +41,11 @@ namespace Bognabot.Core
             Logger = LogManager.GetCurrentClassLogger();
         }
 
-        public static void AddServices(IServiceCollection services, IEnumerable<Type> exchangeServiceTypes)
+        public static void AddServices(IServiceCollection services)
         {
             Logger.Log(LogLevel.Info, "Checking exchange services...");
 
-            var contractType = typeof(IExchangeService);
-
-            foreach (var exchType in exchangeServiceTypes)
-            {
-                var exchName = exchType.Name.Replace("Service", "");
-
-                if (!contractType.IsAssignableFrom(exchType))
-                    Logger.Log(LogLevel.Warn, $"{exchType} exchange service does not derive from {contractType} and will not be loaded");
-
-                services.AddSingleton(contractType, service => ExchangeServiceFactory(service, exchType, exchName));
-
-                Logger.Log(LogLevel.Info, $"Found {exchName} exchange");
-            }
-            
-            services.AddSingleton<GeneralConfig>((x) => ConfigFactory<GeneralConfig>().GetAwaiter().GetResult());
+            services.AddSingleton<GeneralConfig>((x) => ConfigFactory<GeneralConfig>());
             services.AddSingleton<IConfig, GeneralConfig>(x => x.GetService<GeneralConfig>());
 
             services.AddSingleton<ServiceManager>();
@@ -80,6 +69,9 @@ namespace Bognabot.Core
             services.AddTransient<IIndicator, EMA>();
             services.AddTransient<IIndicator, MFI>();
             services.AddTransient<IIndicator, SMA>();
+
+            // Bitmex
+            services.AddSingleton<IExchangeService, BitmexService>(service => new BitmexService(service.GetService<ILogger>(), ConfigFactory<ExchangeConfig>("Bitmex")));
         }
 
         public static void LoadUserData(IServiceProvider serviceProvider, string appRootPath)
@@ -108,17 +100,7 @@ namespace Bognabot.Core
             return serviceManager.StartAsync();
         }
 
-        private static object ExchangeServiceFactory(IServiceProvider service, Type exchType, string exchName)
-        {
-            var cfg = ConfigFactory<ExchangeConfig>(exchName).GetAwaiter().GetResult();
-
-            if (cfg == null || !String.Equals(cfg.ExchangeName, exchName, StringComparison.CurrentCultureIgnoreCase))
-                Cfg.Logger.Log(LogLevel.Warn, $"Cannot locate the config for {exchType.Name}");
-
-            return Activator.CreateInstance(exchType, new object[] { service.GetService<ILogger>(), cfg });
-        }
-
-        private static async Task<T> ConfigFactory<T>(string name = null) where T : IConfig
+        private static T ConfigFactory<T>(string name = null) where T : IConfig
         {
             var configName = name ?? typeof(T).Name.Replace("Config", "");
 
@@ -126,11 +108,11 @@ namespace Bognabot.Core
 
             try
             {
-                var config = JsonConvert.DeserializeObject<T>(await Cfg.GetConfigJson(configName));
+                var config = JsonConvert.DeserializeObject<T>(Cfg.GetConfigJsonAsync(configName).GetAwaiter().GetResult());
 
                 Logger.Log(LogLevel.Info, $"{configName} application data load complete");
 
-                await config.LoadUserConfigAsync(Cfg.AppDataPath);
+                config.LoadUserConfigAsync(Cfg.AppDataPath).GetAwaiter().GetResult();
 
                 Logger.Log(LogLevel.Info, $"{configName} user data load complete");
 

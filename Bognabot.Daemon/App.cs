@@ -9,18 +9,18 @@ namespace Bognabot.Daemon
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<App> _logger;
-        private readonly BitmexService _bitmexService;
+        private readonly BitmexApi _bitmexApi;
 
-        public App(IServiceProvider serviceProvider, ILogger<App> logger, BitmexService bitmexService)
+        public App(IServiceProvider serviceProvider, ILogger<App> logger, BitmexApi bitmexApi)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
-            _bitmexService = bitmexService;
+            _bitmexApi = bitmexApi;
         }
 
         public async void Run()
         {
-            await _bitmexService.StartAsync();
+            //await _bitmexApi.StartAsync();
 
             //_bitmexService.OnTradeReceived += OnTradeReceived;
             //_bitmexService.OnBookReceived += OnBookReceived;

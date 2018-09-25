@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
@@ -26,24 +27,31 @@ namespace Bognabot.Bitmex
             return dateTime.ToString("yyy-MM-ddTHH:mm:ss.fffZ");
         }
         
-        public static IDictionary<string, string> AsDictionary(this object source, BindingFlags bindingAttr = BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance)
+        public static TradeSide ToTradeType(string side)
         {
-            return source.GetType().GetProperties(bindingAttr).ToDictionary
-            (
-                propInfo => propInfo.GetCustomAttributes(typeof(JsonPropertyAttribute))?.Cast<JsonPropertyAttribute>().FirstOrDefault()?.PropertyName ?? propInfo.Name,
-                propInfo => propInfo.GetValue(source, null).ToString()
-            );
+            return side == "Buy" ? TradeSide.Buy : TradeSide.Sell;
         }
 
-        public static TradeType ToTradeType(string side)
+        public static Dictionary<string, string> GetHttpAuthHeaders(HttpMethod httpMethod, string requestPath, string urlQuery, string key, string secret)
         {
-            return side == "Buy" ? TradeType.Buy : TradeType.Sell;
-        }
+            var sb = new StringBuilder();
 
-        public static Dictionary<string, string> GetHttpAuthHeaders(string baseUrl, HttpMethod httpMethod, string requestPath, string urlQuery, string key, string secret)
-        {
-            var signatureMessage = $"{httpMethod.ToString()}/api/v1{requestPath}{urlQuery}{BitmexUtils.Expires()}";
+            sb.Append(httpMethod.ToString());
+            sb.Append("/api/v1");
+            sb.Append(requestPath);
+
+            if (httpMethod == HttpMethod.GET)
+                sb.Append(urlQuery);
+
+            sb.Append(BitmexUtils.Expires());
+
+            if (httpMethod != HttpMethod.GET)
+                sb.Append(urlQuery);
+
+            var signatureMessage = sb.ToString();
             var signatureBytes = StorageUtils.EncryptHMACSHA256(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(signatureMessage));
+
+            
 
             return new Dictionary<string, string>
             {

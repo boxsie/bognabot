@@ -11,9 +11,9 @@ using Bognabot.Data.Exchange;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services.Exchange;
+using Bognabot.Services.Exchange.Contracts;
 using Bognabot.Storage.Core;
 using NLog;
-using IExchangeService = Bognabot.Services.Exchange.IExchangeService;
 
 namespace Bognabot.Services.Repository
 {

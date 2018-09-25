@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Bognabot.Bitmex.Response
 {
-    public class CandleResponse
+    public class CandleResponse : IResponse
     {
         [JsonProperty("timestamp")]
         public DateTime Timestamp { get; set; }

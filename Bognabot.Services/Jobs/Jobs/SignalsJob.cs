@@ -10,6 +10,7 @@ using Bognabot.Trader;
 using NLog;
 using AutoMapper;
 using Bognabot.Domain.Entities.Instruments;
+using Bognabot.Services.Exchange.Contracts;
 using Bognabot.Services.Trader;
 
 namespace Bognabot.Services.Jobs.Jobs

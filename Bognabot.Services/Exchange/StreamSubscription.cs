@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Bognabot.Services.Exchange.Contracts;
 
 namespace Bognabot.Services.Exchange
 {

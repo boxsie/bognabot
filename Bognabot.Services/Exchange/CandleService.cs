@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Exchange.Enums;
+using Bognabot.Services.Exchange.Contracts;
+using Bognabot.Services.Exchange.Factories;
 using Bognabot.Services.Repository;
 using NLog;
 
@@ -14,35 +16,35 @@ namespace Bognabot.Services.Exchange
     {
         private readonly ILogger _logger;
         private readonly RepositoryService _repoService;
-        private readonly List<IExchangeService> _exchanges;
+        private readonly List<IExchangeService> _exchangeServices;
         private readonly Dictionary<Instrument, IStreamSubscription> _candleSubscriptions;
         private readonly Dictionary<Instrument, IStreamSubscription> _tradeSubscriptions;
-        private readonly Dictionary<string, ExchangeCandles> _candleData;
+        private readonly Dictionary<string, ExchangeCandles> _exchangeCandles;
 
-        public CandleService(ILogger logger, RepositoryService repoService, IEnumerable<IExchangeService> exchanges, IndicatorFactory indicatorFactory)
+        public CandleService(ILogger logger, RepositoryService repoService, IEnumerable<IExchangeService> exchangeServices, IndicatorFactory indicatorFactory)
         {
             _repoService = repoService;
-            _exchanges = exchanges.ToList();
+            _exchangeServices = exchangeServices.ToList();
             _logger = logger;
             
             var instruments = Enum.GetValues(typeof(Instrument)).Cast<Instrument>().ToArray();
 
             _candleSubscriptions = new Dictionary<Instrument, IStreamSubscription>();
             _tradeSubscriptions = new Dictionary<Instrument, IStreamSubscription>();
-            _candleData = new Dictionary<string, ExchangeCandles>();
+            _exchangeCandles = new Dictionary<string, ExchangeCandles>();
 
             foreach (var instrument in instruments)
             {
                 _candleSubscriptions.Add(instrument, new StreamSubscription<CandleDto>(OnNewCandle));
                 _tradeSubscriptions.Add(instrument, new StreamSubscription<TradeDto>(OnNewTrade));
 
-                foreach (var exchange in _exchanges)
+                foreach (var exchange in _exchangeServices)
                 {
                     foreach (var timePeriod in exchange.ExchangeConfig.SupportedTimePeriods)
                     {
-                        var exchangeData = new ExchangeCandles(logger, repoService, indicatorFactory, exchange, timePeriod.Key, instrument);
+                        var exchangeData = new ExchangeCandles(logger, repoService, exchange, indicatorFactory, timePeriod.Key, instrument);
 
-                        _candleData.Add(exchangeData.Key, exchangeData);
+                        _exchangeCandles.Add(exchangeData.Key, exchangeData);
                     }
                 }
             }
@@ -50,10 +52,10 @@ namespace Bognabot.Services.Exchange
 
         public async Task StartAsync()
         {
-            foreach (var candleData in _candleData.Values)
+            foreach (var candleData in _exchangeCandles.Values)
                 await candleData.LoadAsync();
 
-            foreach (var exchange in _exchanges)
+            foreach (var exchange in _exchangeServices)
             {
                 var supportedInstruments = exchange.ExchangeConfig.SupportedInstruments;
 
@@ -109,10 +111,10 @@ namespace Bognabot.Services.Exchange
 
             var key = ExchangeUtils.GetCandleDataKey(last.ExchangeName, last.Instrument, last.Period);
 
-            if (!_candleData.ContainsKey(key))
+            if (!_exchangeCandles.ContainsKey(key))
                 return;
 
-            await _candleData[key].InsertCandlesAsync(arg);
+            await _exchangeCandles[key].InsertCandlesAsync(arg);
         }
 
         private Task OnNewTrade(TradeDto[] arg)
@@ -128,10 +130,10 @@ namespace Bognabot.Services.Exchange
             {
                 var key = ExchangeUtils.GetCandleDataKey(last.ExchangeName, last.Instrument, period);
 
-                if (!_candleData.ContainsKey(key))
+                if (!_exchangeCandles.ContainsKey(key))
                     continue;
 
-                _candleData[key].UpdateCurrentCandle(last.Price, arg.Length, arg.Sum(x => x.Size));
+                _exchangeCandles[key].UpdateCurrentCandle(last.Price, arg.Length, arg.Sum(x => x.Size));
             }
 
             return Task.CompletedTask;
@@ -141,8 +143,8 @@ namespace Bognabot.Services.Exchange
         {
             var key = ExchangeUtils.GetCandleDataKey(exchangeName, instrument, period);
 
-            return _candleData.ContainsKey(key) 
-                ? _candleData[key] 
+            return _exchangeCandles.ContainsKey(key) 
+                ? _exchangeCandles[key] 
                 : null;
         }
     }

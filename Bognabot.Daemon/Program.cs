@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Bognabot.Bitmex;
-using Bognabot.Bitmex.Socket;
 using Bognabot.Core;
 using Bognabot.Data;
 using Bognabot.Services;
@@ -47,7 +46,7 @@ namespace Bognabot.Daemon
 
             _logger = NLogBuilder.ConfigureNLog($"{AppDomain.CurrentDomain.BaseDirectory}/nlog.config").GetCurrentClassLogger();
             
-            AppInitialise.AddServices(services, new[] { typeof(BitmexService) });
+            AppInitialise.AddServices(services);
 
             services.AddTransient<App>();
         }

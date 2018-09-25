@@ -15,7 +15,8 @@
     "OneDay": "1d"
   },
   "SupportedRestChannels": {
-    "Candle": "/trade/bucketed"
+    "Candle": "/trade/bucketed",
+    "Order": "/order"
   },
   "SupportedWebsocketChannels": {
     "Trade": "trade",

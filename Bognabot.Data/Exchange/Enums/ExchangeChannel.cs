@@ -4,6 +4,7 @@
     {
         Trade,
         Book,
-        Candle
+        Candle,
+        Order
     }
 }

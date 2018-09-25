@@ -4,7 +4,7 @@ using System.Linq;
 using Bognabot.Trader;
 using NLog;
 
-namespace Bognabot.Services.Exchange
+namespace Bognabot.Services.Exchange.Factories
 {
     public class IndicatorFactory
     {

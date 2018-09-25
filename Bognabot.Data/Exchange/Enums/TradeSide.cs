@@ -1,6 +1,6 @@
 ﻿namespace Bognabot.Data.Exchange.Enums
 {
-    public enum TradeType
+    public enum TradeSide
     {
         Buy,
         Sell

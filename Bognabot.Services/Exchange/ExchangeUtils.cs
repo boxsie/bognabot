@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Reflection;
 using System.Text;
 using Bognabot.Data.Exchange.Enums;
+using Newtonsoft.Json;
 
 namespace Bognabot.Services.Exchange
 {
@@ -15,7 +18,7 @@ namespace Bognabot.Services.Exchange
 
             var firstParam = param.First();
 
-            return $"?{firstParam.Key}={firstParam.Value}{string.Join("", param.Skip(1).Select(x => $"&{x.Key}={x.Value}"))}";
+            return $"{firstParam.Key}={firstParam.Value}{string.Join("", param.Skip(1).Select(x => $"&{x.Key}={x.Value}"))}";
         }
 
         public static byte[] EncodeText(string text, EncodingType encodingType)
@@ -98,6 +101,15 @@ namespace Bognabot.Services.Exchange
                 default:
                     throw new ArgumentOutOfRangeException(nameof(period), period, null);
             }
+        }
+
+        public static Dictionary<string, string> AsDictionary(this object source, BindingFlags bindingAttr = BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance)
+        {
+            return source.GetType().GetProperties(bindingAttr).ToDictionary
+            (
+                propInfo => propInfo.GetCustomAttributes(typeof(JsonPropertyAttribute))?.Cast<JsonPropertyAttribute>().FirstOrDefault()?.PropertyName ?? propInfo.Name,
+                propInfo => propInfo.GetValue(source, null).ToString()
+            );
         }
 
         public static string GetCandleDataKey(string exchangeName, Instrument instrument, TimePeriod period)

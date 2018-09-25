@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Bognabot.Services.Exchange;
+using Bognabot.Services.Exchange.Contracts;
 using Bognabot.Services.Jobs;
 
 namespace Bognabot.Services

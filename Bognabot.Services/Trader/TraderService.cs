@@ -6,6 +6,7 @@ using AutoMapper;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services.Exchange;
+using Bognabot.Services.Exchange.Contracts;
 using Bognabot.Services.Repository;
 using Bognabot.Trader;
 using Bognabot.Trader.Indicators;

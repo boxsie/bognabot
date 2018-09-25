@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Bognabot.Bitmex\Bognabot.Bitmex.csproj" />
     <ProjectReference Include="..\Bognabot.Data\Bognabot.Data.csproj" />
     <ProjectReference Include="..\Bognabot.Services\Bognabot.Services.csproj" />
     <ProjectReference Include="..\Bognabot.Storage\Bognabot.Storage.csproj" />

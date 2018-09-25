@@ -27,7 +27,7 @@ namespace Bognabot.Data
         static Cfg()
         {
 #if DEBUG
-            IsDebug = false;
+            IsDebug = true;
 #else
             IsDebug = false;
 #endif
@@ -71,7 +71,7 @@ namespace Bognabot.Data
             return default(T);
         }
 
-        public static async Task<string> GetConfigJson(string configName)
+        public static async Task<string> GetConfigJsonAsync(string configName)
         {
             using (var store = new TextStore())
             {

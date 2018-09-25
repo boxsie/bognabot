@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Bognabot.App.Hubs;
 using Bognabot.Bitmex;
-using Bognabot.Bitmex.Socket;
 using Bognabot.Core;
 using Bognabot.Data;
 using Bognabot.Data.Config;
@@ -15,6 +14,7 @@ using Bognabot.Data.Mapping;
 using Bognabot.Domain.Entities.Instruments;
 using Bognabot.Services;
 using Bognabot.Services.Exchange;
+using Bognabot.Services.Exchange.Contracts;
 using Bognabot.Services.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -46,7 +46,7 @@ namespace Bognabot.App
             
             services.AddSignalR();
 
-            AppInitialise.AddServices(services, new [] { typeof(BitmexService) });
+            AppInitialise.AddServices(services);
         }
 
         public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider)
@@ -86,7 +86,7 @@ namespace Bognabot.App
             {
                 foreach (var instrument in exchangeService.ExchangeConfig.SupportedInstruments)
                 {
-                    routes.MapHub<ExchangeInstrumentHub>(AppUtils.GetHubRoute(exchangeService.ExchangeConfig.ExchangeName, instrument.Key));
+                    routes.MapHub<ExchangeInstrumentHub>(HubUtils.GetHubRoute(exchangeService.ExchangeConfig.ExchangeName, instrument.Key));
                 }
             }
         }
@@ -102,11 +102,16 @@ namespace Bognabot.App
         }
     }
 
-    public static class AppUtils
+    public static class HubUtils
     {
         public static string GetHubRoute(string exchangeName, Instrument instrument)
         {
             return $"/{exchangeName.ToLower()}{instrument.ToString().ToLower()}hub";
+        }
+
+        public static string GetInstrumentId(string exchangeName, Instrument instrument)
+        {
+            return $"{exchangeName.ToLower()}_{instrument.ToString().ToLower()}";
         }
     }
 }

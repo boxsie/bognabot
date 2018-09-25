@@ -61,4 +61,39 @@ namespace Bognabot.App.Hubs
             return _tradeHubControl.StreamIndicator();
         }
     }
+
+    public class OrdersHubControl
+    {
+        //private readonly IHubContext<OrdersHub> _hub;
+        //private Dictionary<string, Channel<PositionMessage>> _positionChannels;
+
+        //public ChannelReader<List<PositionMessage>> StreamPositions(string positionId)
+        //{
+        //    var channel = Channel.CreateUnbounded<IndicatorMessage>();
+            
+        //    return channel.Reader;
+        //}
+
+        //public Task<List<PositionMessage>> GetPositions()
+        //{
+
+        //}
+    }
+
+    //public class PositionMessage
+    //{
+    //    public string PositionId => HubUtils.GetInstrumentId(ExchangeName, Instrument);
+
+    //    public string ExchangeName { get; set; }
+    //    public Instrument Instrument { get; set; }
+
+    //}
+    
+    //public class OrdersHub : Hub
+    //{
+    //    public ChannelReader<IndicatorMessage> StreamPosition(string exchange, Instrument instrument)
+    //    {
+    //        return _tradeHubControl.StreamIndicator();
+    //    }
+    //}
 }
