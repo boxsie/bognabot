@@ -19,7 +19,7 @@ namespace Bognabot.Services.Exchange
         public ExchangeHttpClient(string baseUrl)
         {
             _logger = LogManager.GetCurrentClassLogger();
-            
+
             BaseAddress = new Uri(baseUrl);
         }
 
@@ -27,61 +27,64 @@ namespace Bognabot.Services.Exchange
         {
             _logger.Log(LogLevel.Debug, $"{HttpMethod.GET} {path}");
 
-            if (authHeaders != null)
-            {
-                foreach (var authHeader in authHeaders)
-                    DefaultRequestHeaders.Add(authHeader.Key, authHeader.Value);
-            }
+            AddHeaders(authHeaders);
 
             var url = $"{BaseAddress}{path}";
 
             var response = await GetAsync(url);
 
-            _logger.Log(LogLevel.Debug, $"{HttpMethod.GET} {url}");
-            _logger.Log(response.IsSuccessStatusCode ? LogLevel.Debug : LogLevel.Error, $"{HttpMethod.GET} {path} {response.ReasonPhrase}");
-
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            var json = await response.Content.ReadAsStringAsync();
-            var isArray = JToken.Parse(json) is JArray;
-
-            return isArray ? JsonConvert.DeserializeObject<T[]>(json) : new[] { JsonConvert.DeserializeObject<T>(json) };
+            return await DeserialiseResponse<T>(response, HttpMethod.GET);
         }
 
         public async Task<T[]> PostAsync<T>(string path, string request, Dictionary<string, string> authHeaders = null)
         {
+            _logger.Log(LogLevel.Debug, $"{HttpMethod.POST} {path}");
+
+            AddHeaders(authHeaders);
+
+            var content = new StringContent(request, Encoding.UTF8, "application/x-www-form-urlencoded");
+
+            var response = await PostAsync($"{BaseAddress}{path}", content);
+
+            return await DeserialiseResponse<T>(response, HttpMethod.POST);
+        }
+
+        private void AddHeaders(Dictionary<string, string> authHeaders = null)
+        {
+            if (authHeaders == null)
+                return;
+
+            foreach (var authHeader in authHeaders)
+                DefaultRequestHeaders.Add(authHeader.Key, authHeader.Value);
+        }
+
+        private async Task<T[]> DeserialiseResponse<T>(HttpResponseMessage response, HttpMethod method)
+        {
             try
             {
-                _logger.Log(LogLevel.Debug, $"{HttpMethod.POST} {path}");
-
-                if (authHeaders != null)
-                {
-                    foreach (var authHeader in authHeaders)
-                        DefaultRequestHeaders.Add(authHeader.Key, authHeader.Value);
-                }
-
-                var content = new StringContent(request, Encoding.UTF8, "application/x-www-form-urlencoded");
-
-                var response = await PostAsync($"{BaseAddress}{path}", content);
-
-                _logger.Log(LogLevel.Debug, $"{HttpMethod.POST} {path}");
-                _logger.Log(response.IsSuccessStatusCode ? LogLevel.Debug : LogLevel.Error, $"{HttpMethod.POST} {path} {response.ReasonPhrase}");
-
                 if (!response.IsSuccessStatusCode)
+                {
+                    _logger.Log(LogLevel.Error, $"{method} {response.ReasonPhrase}");
                     return null;
+                }
 
                 var json = await response.Content.ReadAsStringAsync();
                 var isArray = JToken.Parse(json) is JArray;
 
-                return isArray ? JsonConvert.DeserializeObject<T[]>(json) : new []{ JsonConvert.DeserializeObject<T>(json) };
+                _logger.Log(LogLevel.Debug, $"{method} {response.ReasonPhrase}");
+
+                return isArray
+                    ? JsonConvert.DeserializeObject<T[]>(json)
+                    : new[] {JsonConvert.DeserializeObject<T>(json)};
             }
             catch (Exception e)
             {
                 _logger.Log(LogLevel.Error, e);
-                throw;
+                return null;
             }
-            
         }
     }
 }
+
+
+        

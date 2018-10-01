@@ -57,7 +57,7 @@ var bognabot =
 /******/ 	// undefined = chunk not loaded, null = chunk preloaded/prefetched
 /******/ 	// Promise = chunk loading, 0 = chunk loaded
 /******/ 	var installedChunks = {
-/******/ 		"layout": 0
+/******/ 		"trader.index": 0
 /******/ 	};
 /******/
 /******/ 	var deferredModules = [];
@@ -148,55 +148,34 @@ var bognabot =
 /******/
 /******/
 /******/ 	// add entry module to deferred list
-/******/ 	deferredModules.push(["./Resources/Scripts/layout.js","vendor"]);
+/******/ 	deferredModules.push(["./Resources/Scripts/Controllers/trader.index.js","vendor"]);
 /******/ 	// run deferred modules when ready
 /******/ 	return checkDeferredModules();
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ "./Resources/Scripts/layout.js":
-/*!*************************************!*\
-  !*** ./Resources/Scripts/layout.js ***!
-  \*************************************/
+/***/ "./Resources/Scripts/Components/ordersHub.js":
+/*!***************************************************!*\
+  !*** ./Resources/Scripts/Components/ordersHub.js ***!
+  \***************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n    value: true\n});\nexports.LayoutViewModel = undefined;\n\nvar _vue = __webpack_require__(/*! vue */ \"./node_modules/vue/dist/vue.js\");\n\nvar _vue2 = _interopRequireDefault(_vue);\n\n__webpack_require__(/*! bootstrap */ \"./node_modules/bootstrap/dist/js/bootstrap.js\");\n\n__webpack_require__(/*! ../Style/layout.scss */ \"./Resources/Style/layout.scss\");\n\n__webpack_require__(/*! ../Style/signals.scss */ \"./Resources/Style/signals.scss\");\n\n__webpack_require__(/*! ../Style/indicators.scss */ \"./Resources/Style/indicators.scss\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(\"Cannot call a class as a function\"); } }\n\nvar LayoutViewModel = exports.LayoutViewModel = function LayoutViewModel(options) {\n    _classCallCheck(this, LayoutViewModel);\n};\n\n//# sourceURL=webpack://bognabot/./Resources/Scripts/layout.js?");
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n    value: true\n});\nexports.OrdersHub = undefined;\n\nvar _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if (\"value\" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();\n\nvar _signalr = __webpack_require__(/*! @aspnet/signalr */ \"./node_modules/@aspnet/signalr/dist/esm/index.js\");\n\nfunction _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(\"Cannot call a class as a function\"); } }\n\nvar OrdersHub = exports.OrdersHub = function () {\n    function OrdersHub() {\n        _classCallCheck(this, OrdersHub);\n\n        this.connection = new _signalr.HubConnectionBuilder().configureLogging(_signalr.LogLevel.Information).withUrl('/ordershub').build();\n    }\n\n    _createClass(OrdersHub, [{\n        key: 'start',\n        value: function start(onConnected) {\n            this.connection.start().then(onConnected);\n        }\n    }, {\n        key: 'streamExchangePosition',\n        value: function streamExchangePosition(exchange, instrument, callback) {\n            this.connection.stream('streamPosition', exchange, instrument).subscribe({\n                next: function next(item) {\n                    callback(item);\n                },\n                complete: function complete() {},\n                error: function error(err) {\n                    console.log(err);\n                }\n            });\n        }\n    }]);\n\n    return OrdersHub;\n}();\n\n;\n\n//# sourceURL=webpack://bognabot/./Resources/Scripts/Components/ordersHub.js?");
 
 /***/ }),
 
-/***/ "./Resources/Style/indicators.scss":
-/*!*****************************************!*\
-  !*** ./Resources/Style/indicators.scss ***!
-  \*****************************************/
+/***/ "./Resources/Scripts/Controllers/trader.index.js":
+/*!*******************************************************!*\
+  !*** ./Resources/Scripts/Controllers/trader.index.js ***!
+  \*******************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("// extracted by mini-css-extract-plugin\n\n//# sourceURL=webpack://bognabot/./Resources/Style/indicators.scss?");
-
-/***/ }),
-
-/***/ "./Resources/Style/layout.scss":
-/*!*************************************!*\
-  !*** ./Resources/Style/layout.scss ***!
-  \*************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("// extracted by mini-css-extract-plugin\n\n//# sourceURL=webpack://bognabot/./Resources/Style/layout.scss?");
-
-/***/ }),
-
-/***/ "./Resources/Style/signals.scss":
-/*!**************************************!*\
-  !*** ./Resources/Style/signals.scss ***!
-  \**************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("// extracted by mini-css-extract-plugin\n\n//# sourceURL=webpack://bognabot/./Resources/Style/signals.scss?");
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n    value: true\n});\nexports.TraderViewModel = undefined;\n\nvar _vue = __webpack_require__(/*! vue */ \"./node_modules/vue/dist/vue.js\");\n\nvar _vue2 = _interopRequireDefault(_vue);\n\n__webpack_require__(/*! bootstrap */ \"./node_modules/bootstrap/dist/js/bootstrap.js\");\n\nvar _ordersHub = __webpack_require__(/*! ../Components/ordersHub.js */ \"./Resources/Scripts/Components/ordersHub.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(\"Cannot call a class as a function\"); } }\n\nvar TraderViewModel = exports.TraderViewModel = function TraderViewModel(options) {\n    _classCallCheck(this, TraderViewModel);\n\n    this.vm = new _vue2.default({\n        el: '#trader',\n        data: {\n            exchangePositions: [{\n                exchangeName: 'bitmex'\n            }]\n        },\n        created: function created() {\n            var _this = this;\n\n            this.ordersHub = new _ordersHub.OrdersHub();\n\n            this.ordersHub.start(function () {\n                _this.ordersHub.streamExchangePosition('Bitmex', 'BTCUSD', function (position) {\n                    console.log(position);\n                    for (var i = 0; i < _this.exchangePositions.length; i++) {\n                        var ep = _this.exchangePositions[i];\n                        if (ep.exchangeName.toLowerCase() === 'bitmex') {\n                            _this.$set(_this.exchangePositions, i, position);\n                        }\n                    }\n                });\n            });\n        }\n    });\n};\n\n//# sourceURL=webpack://bognabot/./Resources/Scripts/Controllers/trader.index.js?");
 
 /***/ })
 

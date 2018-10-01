@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Timers;
 using AutoMapper;
 using Bognabot.Data.Config;
 using Bognabot.Data.Exchange;
@@ -15,6 +16,12 @@ using NLog;
 
 namespace Bognabot.Services.Exchange
 {
+    public interface ISocketChannel
+    {
+        Task<Dictionary<string, string>> GetHttpAuthHeader(HttpMethod httpMethod, string requestPath, string requestData);
+        Task<string> GetSocketAuthRequest();
+    }
+
     public abstract class ExchangeApi : IExchangeApi
     {
         public abstract DateTime Now { get; }
@@ -24,9 +31,12 @@ namespace Bognabot.Services.Exchange
         private readonly ILogger _logger;
         private readonly IExchangeSocketClient _socketClient;
         private readonly Dictionary<ExchangeChannel, List<IStreamSubscription>> _subscriptions;
+        private readonly Timer _authTimer;
 
+        protected abstract Task<Dictionary<string, string>> GetHttpAuthHeader(HttpMethod httpMethod, string requestPath, string requestData);
+        protected abstract Task<string> GetSocketAuthRequest();
+        protected abstract Task<string> GetSocketRequest(ExchangeChannel channel, Instrument? instrument = null);
         protected abstract Task OnSocketReceive(string json);
-        protected abstract Task<string> GetSocketRequest(Instrument instrument, ExchangeChannel channel);
 
         protected ExchangeApi(ILogger logger, ExchangeConfig config)
         {
@@ -35,14 +45,22 @@ namespace Bognabot.Services.Exchange
 
             _socketClient = new ExchangeSocketClient(logger);
             _subscriptions = new Dictionary<ExchangeChannel, List<IStreamSubscription>>();
+
+            _authTimer = new Timer((ExchangeConfig.AuthExpireSeconds * 0.99) * 1000);
+
+            _authTimer.Elapsed += async (sender, args) => await SendWebsocketAuth(sender, null);
         }
 
-        public Task StartAsync()
+        public async Task StartAsync()
         {
-            return _socketClient.ConnectAsync(ExchangeConfig.WebSocketUrl, OnSocketReceive);
+            await _socketClient.ConnectAsync(ExchangeConfig.WebSocketUrl, OnSocketReceive);
+
+            await SendWebsocketAuth();
+
+            _authTimer.Start();
         }
 
-        public async Task SubscribeToStreamAsync<T>(ExchangeChannel channel, Instrument instrument, IStreamSubscription subscription) where T : ExchangeDto
+        public async Task SubscribeToSocketAsync<T>(ExchangeChannel channel, IStreamSubscription subscription, Instrument? instrument = null) where T : ExchangeDto
         {
             if (!ExchangeConfig.SupportedWebsocketChannels.ContainsKey(channel))
                 return;
@@ -52,18 +70,19 @@ namespace Bognabot.Services.Exchange
 
             _subscriptions[channel].Add(subscription);
 
-            await _socketClient.SubscribeAsync(await GetSocketRequest(instrument, channel));
+            await _socketClient.SubscribeAsync(await GetSocketRequest(channel, instrument));
         }
 
-        public async Task<T> GetAsync<T, TY>(string path, Dictionary<string, string> request, Dictionary<string, string> authHeaders = null)
+        public async Task<T> GetAsync<T, TY>(string path, IRequest request)
             where T : ExchangeDto
             where TY : IResponse
         {
             using (var client = new ExchangeHttpClient(ExchangeConfig.RestUrl))
             {
                 var query = $"?{request.AsDictionary().BuildQueryString()}";
+                var authHeader = await GetHttpAuthHeader(HttpMethod.GET, path, query);
 
-                var response = await client.GetAsync<TY>($"{path}{query}", authHeaders);
+                var response = await client.GetAsync<TY>($"{path}{query}", authHeader);
 
                 if (response == null)
                     throw new NullReferenceException();
@@ -74,7 +93,7 @@ namespace Bognabot.Services.Exchange
             }
         }
 
-        public async Task<List<T>> GetAllAsync<T, TY>(string path, ICollectionRequest request, Dictionary<string, string> authHeaders = null)
+        public async Task<List<T>> GetAllAsync<T, TY>(string path, ICollectionRequest request)
             where T : ExchangeDto
             where TY : IResponse
         {
@@ -93,8 +112,9 @@ namespace Bognabot.Services.Exchange
                     request.StartAt = total;
 
                     var query = $"?{request.AsDictionary().BuildQueryString()}";
+                    var authHeader = await GetHttpAuthHeader(HttpMethod.GET, path, query);
 
-                    var response = await client.GetAsync<TY>($"{path}{query}", authHeaders);
+                    var response = await client.GetAsync<TY>($"{path}{query}", authHeader);
 
                     if (response == null)
                         throw new NullReferenceException();
@@ -117,13 +137,16 @@ namespace Bognabot.Services.Exchange
             return returnModels;
         }
 
-        public async Task<T> PostAsync<T, TY>(string path, IRequest request, Dictionary<string, string> authHeaders = null)
+        public async Task<T> PostAsync<T, TY>(string path, IRequest request)
             where T : ExchangeDto
             where TY : IResponse
         {
             using (var client = new ExchangeHttpClient(ExchangeConfig.RestUrl))
             {
-                var response = await client.PostAsync<TY>(path, request.AsDictionary().BuildQueryString(), authHeaders);
+                var data = request.AsDictionary().BuildQueryString();
+                var authHeader = await GetHttpAuthHeader(HttpMethod.POST, path, data);
+
+                var response = await client.PostAsync<TY>(path, data, authHeader);
 
                 if (response == null)
                     throw new NullReferenceException();
@@ -171,6 +194,13 @@ namespace Bognabot.Services.Exchange
                 foreach (var subscription in subs)
                     await subscription.TriggerUpdate(models);
             }
+        }
+
+        private async Task SendWebsocketAuth(object sender = null, ElapsedEventArgs e = null)
+        {
+            var authRequest = await GetSocketAuthRequest();
+
+            await _socketClient.SendAsync(authRequest);
         }
     }
 }

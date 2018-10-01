@@ -12,13 +12,29 @@ module.exports = {
     entry: {
         'layout': baseScriptsPath + 'layout.js',
         'signals.index': baseScriptsPath + 'Controllers/signals.index.js',
-        'indicators.index': baseScriptsPath + 'Controllers/indicators.index.js'
+        'indicators.index': baseScriptsPath + 'Controllers/indicators.index.js',
+        'trader.index': baseScriptsPath + 'Controllers/trader.index.js'
     },
     output: {
         path: webRoot,
         publicPath: '../',
         filename: filenameJs,
+        chunkFilename: filenameJs,
         library: 'bognabot'
+    },
+    mode: 'development',
+    optimization: {
+        minimize: false,
+        splitChunks: {
+            cacheGroups: {
+                vendor: {
+                    test: /node_modules/,
+                    chunks: 'initial',
+                    name: 'vendor',
+                    enforce: true
+                }
+            }
+        }
     },
     module: {
         rules: [

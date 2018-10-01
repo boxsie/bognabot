@@ -3,10 +3,11 @@
   "UserConfigFilename": "bitmex.user.live.json",
   "WebSocketUrl": "wss://www.bitmex.com/realtime",
   "RestUrl": "https://www.bitmex.com/api/v1",
+  "AuthExpireSeconds": 3600,
   "SupportedInstruments": {
     "BTCUSD": "XBTUSD",
-    "ETHUSD":  "ETHUSD",
-    "XRPBTC": "XRPU18" 
+    "ETHUSD": "ETHUSD",
+    "XRPBTC": "XRPU18"
   },
   "SupportedTimePeriods": {
     "OneMinute": "1m",
@@ -21,6 +22,12 @@
   "SupportedWebsocketChannels": {
     "Trade": "trade",
     "Book": "orderBookL2",
-    "Candle": "tradeBin"
+    "Candle": "tradeBin",
+    "Position": "position"
+  },
+  "SupportedOrderTypes": {
+    "Market": "Market",
+    "Limit": "Limit",
+    "Stop": "Stop"
   }
 }

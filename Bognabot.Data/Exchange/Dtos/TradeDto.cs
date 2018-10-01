@@ -3,6 +3,12 @@ using Bognabot.Data.Exchange.Enums;
 
 namespace Bognabot.Data.Exchange.Dtos
 {
+    public class PositionDto : ExchangeDto
+    {
+        public double? Quantity { get; set; }
+        public double? EntryPrice { get; set; }
+    }
+
     public class OrderDto : ExchangeDto
     {
         public string OrderId { get; set; }

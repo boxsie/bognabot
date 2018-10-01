@@ -1,7 +1,4 @@
-﻿
-import { HubConnectionBuilder, LogLevel } from '@aspnet/signalr';
-
-export class TradeIndicator {
+﻿export class TradeIndicator {
     constructor(connection, indicatorName, exchangeName, instrument, period) {
         this.connection = connection;
         this.indicatorName = indicatorName;

@@ -53,6 +53,7 @@ namespace Bognabot.Core
             services.AddSingleton<CandleService>();
             services.AddSingleton<JobService>();
             services.AddSingleton<TraderService>();
+            services.AddSingleton<OrderService>();
 
             services.AddTransient<IRepository<Candle>, Repository<Candle>>();
 
@@ -90,6 +91,9 @@ namespace Bognabot.Core
                     .ForMember(d => d.Instrument, m => m.Ignore())
                     .ForMember(d => d.ExchangeName, m => m.Ignore())
                     .ForMember(d => d.Period, m => m.Ignore());
+
+                cfg.CreateMap<PositionDto, PositionDto>()
+                    .ForAllMembers(o => o.Condition((s, d, srcM, destM) => srcM != null));
             });
 
             Cfg.InitialiseConfig(serviceProvider.GetServices<IConfig>());

@@ -116,5 +116,10 @@ namespace Bognabot.Services.Exchange
         {
             return $"{exchangeName}_{instrument}_{period}_Candles";
         }
+
+        public static string GetExchangePositionKey(string exchangeName, Instrument instrument)
+        {
+            return $"{exchangeName.ToLower()}_{instrument.ToString().ToLower()}_Position";
+        }
     }
 }

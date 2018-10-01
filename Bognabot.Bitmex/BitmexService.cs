@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Bognabot.Bitmex.Request;
@@ -11,34 +12,24 @@ using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Exchange.Enums;
 using Bognabot.Services.Exchange;
 using Bognabot.Services.Exchange.Contracts;
+using Bognabot.Storage.Core;
 using Newtonsoft.Json;
 using NLog;
 
 namespace Bognabot.Bitmex
 {
-    public class OrderService
-    {
-        private readonly IEnumerable<IExchangeService> _exchangeServices;
-        private readonly List<OrderDto> _openOrders;
-
-        public OrderService(IEnumerable<IExchangeService> exchangeServices)
-        {
-            _exchangeServices = exchangeServices;
-
-            _openOrders = new List<OrderDto>();
-        }
-    }
-
     public class BitmexService : IExchangeService
     {
         public ExchangeConfig ExchangeConfig { get; }
         public DateTime Now => _exchangeApi.Now;
 
+        private readonly ILogger _logger;
         private readonly IExchangeApi _exchangeApi;
         private readonly List<OrderDto> _openOrders;
 
         public BitmexService(ILogger logger, ExchangeConfig config)
         {
+            _logger = logger;
             ExchangeConfig = config;
 
             _exchangeApi = new BitmexApi(logger, ExchangeConfig);
@@ -67,18 +58,23 @@ namespace Bognabot.Bitmex
                 .ForMember(d => d.Instrument, o => o.MapFrom(s => _exchangeApi.ToInstrumentType(s.Symbol)))
                 .ForMember(d => d.Side, o => o.MapFrom(s => BitmexUtils.ToTradeType(s.Side)))
                 .ForMember(d => d.Timestamp, o => o.MapFrom(s => BitmexUtils.Now()));
+
+            cfg.CreateMap<PositionResponse, PositionDto>()
+                .ForMember(d => d.ExchangeName, o => o.MapFrom(s => ExchangeConfig.ExchangeName))
+                .ForMember(d => d.Instrument, o => o.MapFrom(s => _exchangeApi.ToInstrumentType(s.Symbol)))
+                .ForMember(d => d.Timestamp, o => o.MapFrom(s => BitmexUtils.Now()));
         }
 
         public async Task StartAsync()
         {
             await _exchangeApi.StartAsync();
 
-            //var o = await PlaceOrder(Instrument.BTCUSD, 6427, -500);
+            var o = await PlaceOrder(Instrument.BTCUSD, 6660, -100, OrderType.Limit);
         }
 
-        public Task SubscribeToStreamAsync<T>(ExchangeChannel channel, Instrument instrument, IStreamSubscription subscription) where T : ExchangeDto
+        public Task SubscribeToStreamAsync<T>(ExchangeChannel channel, IStreamSubscription subscription, Instrument? instrument = null) where T : ExchangeDto
         {
-            return _exchangeApi.SubscribeToStreamAsync<T>(channel, instrument, subscription);
+            return _exchangeApi.SubscribeToSocketAsync<T>(channel, subscription, instrument);
         }
 
         public async Task<List<CandleDto>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTime startTime, DateTime endTime)
@@ -94,15 +90,8 @@ namespace Bognabot.Bitmex
             };
 
             var channelPath = ExchangeConfig.SupportedRestChannels[ExchangeChannel.Candle];
-
-            var authHeaders = BitmexUtils.GetHttpAuthHeaders(
-                HttpMethod.GET,
-                channelPath,
-                $"?{request.AsDictionary().BuildQueryString()}",
-                ExchangeConfig.UserConfig.Key,
-                ExchangeConfig.UserConfig.Secret);
-
-            var response = await _exchangeApi.GetAllAsync<CandleDto, CandleResponse>(channelPath, request, authHeaders);
+            
+            var response = await _exchangeApi.GetAllAsync<CandleDto, CandleResponse>(channelPath, request);
 
             foreach (var candleModel in response)
                 candleModel.Period = timePeriod;
@@ -110,27 +99,27 @@ namespace Bognabot.Bitmex
             return response.ToList();
         }
 
-        public async Task<OrderDto> PlaceOrder(Instrument instrument, double price, double quantity)
+        public async Task<OrderDto> PlaceOrder(Instrument instrument, double price, double quantity, OrderType orderType)
         {
+            if (!ExchangeConfig.SupportedOrderTypes.ContainsKey(orderType))
+            {
+                _logger.Log(LogLevel.Error, $"{ExchangeConfig.ExchangeName} does not support orders of type {orderType}");
+
+                return null;
+            }
+
             var request = new PlaceOrderRequest
             {
                 Symbol = _exchangeApi.ToSymbol(instrument),
                 OrderQty = quantity,
                 Price = price,
-                OrderType = "Limit"
+                OrderType = ExchangeConfig.SupportedOrderTypes[orderType]
             };
 
             var channelPath = ExchangeConfig.SupportedRestChannels[ExchangeChannel.Order];
             var jsonRequest = JsonConvert.SerializeObject(request);
 
-            var authHeaders = BitmexUtils.GetHttpAuthHeaders(
-                HttpMethod.POST,
-                channelPath,
-                request.AsDictionary().BuildQueryString(),
-                ExchangeConfig.UserConfig.Key,
-                ExchangeConfig.UserConfig.Secret);
-
-            return await _exchangeApi.PostAsync<OrderDto, OrderResponse>(channelPath, request, authHeaders);
+            return await _exchangeApi.PostAsync<OrderDto, OrderResponse>(channelPath, request);
         }
     }
 }

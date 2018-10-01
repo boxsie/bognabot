@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Bognabot.Bitmex.Response
 {
-    public partial class OrderResponse : IResponse
+    public class OrderResponse : IResponse
     {
         [JsonProperty("orderID")]
         public string OrderId { get; set; }

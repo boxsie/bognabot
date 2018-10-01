@@ -1,8 +1,4 @@
-﻿import vue from 'vue';
-import 'bootstrap';
-import { HubConnectionBuilder, LogLevel } from '@aspnet/signalr';
-
-export class SignalsViewModel {
+﻿export class SignalsViewModel {
     constructor(options) {
         this.vm = new vue({
             el: '#signals',

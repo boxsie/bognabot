@@ -8,6 +8,8 @@ using Bognabot.Data.Config;
 using Bognabot.Data.Config.Contracts;
 using Bognabot.Storage.Core;
 using Bognabot.Storage.Stores;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NLog;
 
 namespace Bognabot.Data
@@ -76,12 +78,44 @@ namespace Bognabot.Data
             using (var store = new TextStore())
             {
                 var cfgName = configName.ToLower();
+                
+                var liveFile = StorageUtils.PathCombine(AppDataPath, $"{cfgName}{LiveFileExt}");
 
-                var pathFileExt = IsDebug && File.Exists(StorageUtils.PathCombine(AppDataPath, $"{cfgName}{DebugFileExt}")) ? DebugFileExt : LiveFileExt;
+                if (!File.Exists(liveFile))
+                {
+                    Logger.Log(LogLevel.Fatal, $"{cfgName}{LiveFileExt} is missing from {AppDataPath}");
+                    throw new FileNotFoundException();
+                }
 
-                var json = await store.ReadAsync(StorageUtils.PathCombine(AppDataPath, $"{cfgName}{pathFileExt}"));
+                var liveJson = await store.ReadAsync(liveFile);
 
-                return json;
+                if (!IsDebug)
+                    return liveJson;
+
+                var debugFile = StorageUtils.PathCombine(AppDataPath, $"{cfgName}{DebugFileExt}");
+
+                if (!File.Exists(debugFile))
+                {
+                    Logger.Log(LogLevel.Warn, $"{cfgName}{DebugFileExt} is missing from {AppDataPath}, using live config");
+                    return liveJson;
+                }
+
+                var debugJson = await store.ReadAsync(debugFile);
+
+                var jObjLive = JObject.Parse(liveJson);
+                var jObjDebug = JObject.Parse(debugJson);
+
+                foreach (var prop in jObjDebug.Properties())
+                {
+                    var targetProperty = jObjLive.Property(prop.Name);
+
+                    if (targetProperty == null)
+                        jObjDebug.Add(prop.Name, prop.Value);
+                    else
+                        targetProperty.Value = prop.Value;
+                }
+
+                return jObjLive.ToString(Formatting.None);
             }
         }
     }

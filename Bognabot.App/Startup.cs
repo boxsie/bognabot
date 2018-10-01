@@ -43,10 +43,12 @@ namespace Bognabot.App
             services.AddSingleton<ILogger>((x) => _logger);
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-            
-            services.AddSignalR();
 
             AppInitialise.AddServices(services);
+
+            services.AddSignalR(x => x.EnableDetailedErrors = true);
+
+            services.AddSingleton<OrdersHubControl>();
         }
 
         public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider)
@@ -71,24 +73,9 @@ namespace Bognabot.App
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
 
-            
-
-            app.UseSignalR(routes => Configure(serviceProvider, routes));
+            app.UseSignalR(routes => routes.MapHub<OrdersHub>("/ordershub"));
 
             ConfigureApp(serviceProvider);
-        }
-
-        private void Configure(IServiceProvider serviceProvider, HubRouteBuilder routes)
-        {
-            var exchangeServices = serviceProvider.GetServices<IExchangeService>();
-
-            foreach (var exchangeService in exchangeServices)
-            {
-                foreach (var instrument in exchangeService.ExchangeConfig.SupportedInstruments)
-                {
-                    routes.MapHub<ExchangeInstrumentHub>(HubUtils.GetHubRoute(exchangeService.ExchangeConfig.ExchangeName, instrument.Key));
-                }
-            }
         }
 
         private void ConfigureApp(IServiceProvider serviceProvider)
@@ -99,19 +86,6 @@ namespace Bognabot.App
 
             Task.Run(() => AppInitialise.Start(sm));
             Task.Run(ElectronBootstrap.InitAsync);
-        }
-    }
-
-    public static class HubUtils
-    {
-        public static string GetHubRoute(string exchangeName, Instrument instrument)
-        {
-            return $"/{exchangeName.ToLower()}{instrument.ToString().ToLower()}hub";
-        }
-
-        public static string GetInstrumentId(string exchangeName, Instrument instrument)
-        {
-            return $"{exchangeName.ToLower()}_{instrument.ToString().ToLower()}";
         }
     }
 }

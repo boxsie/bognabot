@@ -7,11 +7,6 @@ import '../Style/indicators.scss';
 
 export class LayoutViewModel {
     constructor(options) {
-        this.vm = new vue({
-            el: '#main',
-            data: {
-                
-            }
-        });
+        
     }
 }

@@ -14,17 +14,17 @@ namespace Bognabot.Services.Exchange.Contracts
         DateTime Now { get; }
 
         Task StartAsync();
-        Task SubscribeToStreamAsync<T>(ExchangeChannel channel, Instrument instrument, IStreamSubscription subscription) where T : ExchangeDto;
+        Task SubscribeToSocketAsync<T>(ExchangeChannel channel, IStreamSubscription subscription, Instrument? instrument = null) where T : ExchangeDto;
 
-        Task<T> GetAsync<T, TY>(string path, Dictionary<string, string> request, Dictionary<string, string> authHeaders = null)
+        Task<T> GetAsync<T, TY>(string path, IRequest request)
             where T : ExchangeDto
             where TY : IResponse;
 
-        Task<List<T>> GetAllAsync<T, TY>(string path, ICollectionRequest request, Dictionary<string, string> authHeaders = null)
+        Task<List<T>> GetAllAsync<T, TY>(string path, ICollectionRequest request)
             where T : ExchangeDto
             where TY : IResponse;
 
-        Task<T> PostAsync<T, TY>(string path, IRequest request, Dictionary<string, string> authHeaders = null)
+        Task<T> PostAsync<T, TY>(string path, IRequest request)
             where T : ExchangeDto
             where TY : IResponse;
 

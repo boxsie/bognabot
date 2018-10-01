@@ -5,6 +5,7 @@
         Trade,
         Book,
         Candle,
-        Order
+        Order,
+        Position
     }
 }

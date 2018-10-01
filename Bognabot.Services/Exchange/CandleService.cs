@@ -61,8 +61,8 @@ namespace Bognabot.Services.Exchange
 
                 foreach (var instrument in supportedInstruments.Keys)
                 {
-                    await exchange.SubscribeToStreamAsync<CandleDto>(ExchangeChannel.Candle, instrument, _candleSubscriptions[instrument]);
-                    await exchange.SubscribeToStreamAsync<TradeDto>(ExchangeChannel.Trade, instrument, _tradeSubscriptions[instrument]);
+                    await exchange.SubscribeToStreamAsync<CandleDto>(ExchangeChannel.Candle, _candleSubscriptions[instrument], instrument);
+                    await exchange.SubscribeToStreamAsync<TradeDto>(ExchangeChannel.Trade, _tradeSubscriptions[instrument], instrument);
                 }
             }
         }
