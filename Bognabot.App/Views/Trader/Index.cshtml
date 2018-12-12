@@ -1,4 +1,6 @@
-﻿
+﻿@using Bognabot.Data.Exchange.Enums
+@model Bognabot.App.ViewModels.TraderIndexViewModel
+
 @{
     ViewData["Title"] = "Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -7,7 +9,7 @@
 <div id="trader" class="container-fluid">
     <div class="card" v-for="position in exchangePositions">
         <div class="card-header">
-            {{position.exchangeName}} - {{position.instrument}}
+            {{position.exchangeName}} - {{parseInstrument(position.instrument)}}
         </div>
         <div class="card-body">
             <ul>
@@ -23,7 +25,7 @@
     <script src="js/trader.index.js"></script>
     <script language="javascript">
         var vm = new bognabot.TraderViewModel({
-
+            instruments: @Json.Serialize(Enum.GetNames(typeof(Instrument)))
         });
     </script>
 }

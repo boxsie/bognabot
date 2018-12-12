@@ -11,9 +11,14 @@ export class TraderViewModel {
                     exchangeName: 'bitmex'
                 }]
             },
+            methods: {
+                parseInstrument(index) {
+                    return options.instruments[index];
+                }
+            },
             created() {
                 this.ordersHub = new OrdersHub();
-
+                console.log(options);
                 this.ordersHub.start(() => {
                     this.ordersHub.streamExchangePosition('Bitmex', 'BTCUSD', (position) => {
                         console.log(position);

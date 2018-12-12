@@ -19,29 +19,29 @@ namespace Bognabot.App
             BuildWebHost(args).Run();
         }
 
-        public static IWebHost BuildWebHost(string[] args)
-        {
-            return WebHost.CreateDefaultBuilder(args)
-                .UseKestrel()
-                .UseUrls("http://localhost:5000")
-                .UseStartup<Startup>()
-                .ConfigureLogging(logging => { logging.ClearProviders(); })
-                .UseNLog()
-                .Build();
-        }
-
         //public static IWebHost BuildWebHost(string[] args)
         //{
         //    return WebHost.CreateDefaultBuilder(args)
-        //        .UseElectron(args)
+        //        .UseKestrel()
+        //        .UseUrls("http://localhost:5000")
         //        .UseStartup<Startup>()
-        //        .ConfigureLogging(logging =>
-        //        {
-        //            logging.ClearProviders();
-        //            logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-        //        })
+        //        .ConfigureLogging(logging => { logging.ClearProviders(); })
         //        .UseNLog()
         //        .Build();
         //}
+
+        public static IWebHost BuildWebHost(string[] args)
+        {
+            return WebHost.CreateDefaultBuilder(args)
+                .UseElectron(args)
+                .UseStartup<Startup>()
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                })
+                .UseNLog()
+                .Build();
+        }
     }
 }

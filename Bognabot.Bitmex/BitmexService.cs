@@ -79,6 +79,13 @@ namespace Bognabot.Bitmex
 
         public async Task<List<CandleDto>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTime startTime, DateTime endTime)
         {
+            if (!ExchangeConfig.SupportedInstruments.ContainsKey(instrument))
+            {
+                _logger.Log(LogLevel.Error, $"{ExchangeConfig.ExchangeName} does not support the {instrument} instrument");
+
+                return null;
+            }
+
             var request = new CandleRequest
             {
                 Symbol = _exchangeApi.ToSymbol(instrument),
@@ -101,6 +108,13 @@ namespace Bognabot.Bitmex
 
         public async Task<OrderDto> PlaceOrder(Instrument instrument, double price, double quantity, OrderType orderType)
         {
+            if (!ExchangeConfig.SupportedInstruments.ContainsKey(instrument))
+            {
+                _logger.Log(LogLevel.Error, $"{ExchangeConfig.ExchangeName} does not support the {instrument} instrument");
+
+                return null;
+            }
+
             if (!ExchangeConfig.SupportedOrderTypes.ContainsKey(orderType))
             {
                 _logger.Log(LogLevel.Error, $"{ExchangeConfig.ExchangeName} does not support orders of type {orderType}");

@@ -6,8 +6,7 @@
   "AuthExpireSeconds": 3600,
   "SupportedInstruments": {
     "BTCUSD": "XBTUSD",
-    "ETHUSD": "ETHUSD",
-    "XRPBTC": "XRPU18"
+    "ETHUSD": "ETHUSD"
   },
   "SupportedTimePeriods": {
     "OneMinute": "1m",

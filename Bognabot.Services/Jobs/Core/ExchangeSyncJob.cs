@@ -34,7 +34,8 @@ namespace Bognabot.Services.Jobs.Core
                 {
                     foreach (var exchange in ExchangeServices)
                     {
-                        await ExecuteOnExchangeAsync(exchange, instrument);
+                        if (exchange.ExchangeConfig.SupportedInstruments.ContainsKey(instrument))
+                            await ExecuteOnExchangeAsync(exchange, instrument);
                     }
                 }
             }

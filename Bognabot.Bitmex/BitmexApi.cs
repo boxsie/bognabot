@@ -75,18 +75,10 @@ namespace Bognabot.Bitmex
             switch (channel)
             {
                 case ExchangeChannel.Trade:
-                    result = GetSocketRequest(
-                        ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Trade], 
-                        instrument.HasValue 
-                            ? ToSymbol(instrument.Value) 
-                            : null);
+                    result = GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Trade], instrument.HasValue ? ToSymbol(instrument.Value) : null);
                     break;
                 case ExchangeChannel.Book:
-                    result = GetSocketRequest(
-                        ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Book], 
-                        instrument.HasValue 
-                            ? ToSymbol(instrument.Value) 
-                            : null);
+                    result = GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Book], instrument.HasValue ? ToSymbol(instrument.Value) : null);
                     break;
                 case ExchangeChannel.Candle:
                     var paths = ExchangeConfig.SupportedTimePeriods.Values
@@ -100,11 +92,7 @@ namespace Bognabot.Bitmex
                     result = GetSocketRequest(paths, args);
                     break;
                 case ExchangeChannel.Position:
-                    result = GetSocketRequest(
-                        ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Position], 
-                        instrument.HasValue 
-                            ? $"filter={ToSymbol(instrument.Value)}" 
-                            : null);
+                    result = GetSocketRequest(ExchangeConfig.SupportedWebsocketChannels[ExchangeChannel.Position], instrument.HasValue ? $"filter={ToSymbol(instrument.Value)}" : null);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(channel), channel, null);

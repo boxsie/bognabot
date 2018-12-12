@@ -40,6 +40,9 @@ namespace Bognabot.Services.Trader
 
         public async Task ProcessSignals(IExchangeService exchangeService, Instrument instrument)
         {
+            if (!exchangeService.ExchangeConfig.SupportedInstruments.ContainsKey(instrument))
+                return;
+
             var periods = Enum.GetValues(typeof(TimePeriod)).Cast<TimePeriod>();
             
             _logger.Log(LogLevel.Info, $"---- {exchangeService.ExchangeConfig.ExchangeName} {instrument} ----");

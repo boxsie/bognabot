@@ -42,6 +42,9 @@ namespace Bognabot.Services.Exchange
                 {
                     foreach (var timePeriod in exchange.ExchangeConfig.SupportedTimePeriods)
                     {
+                        if (!exchange.ExchangeConfig.SupportedInstruments.ContainsKey(instrument)) 
+                            continue;
+
                         var exchangeData = new ExchangeCandles(logger, repoService, exchange, indicatorFactory, timePeriod.Key, instrument);
 
                         _exchangeCandles.Add(exchangeData.Key, exchangeData);
