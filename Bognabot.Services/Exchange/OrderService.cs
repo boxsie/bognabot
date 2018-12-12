@@ -3,21 +3,26 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Bognabot.Data.Config;
 using Bognabot.Data.Exchange.Dtos;
 using Bognabot.Data.Exchange.Enums;
+using Bognabot.Data.Trader.Models;
 using Bognabot.Services.Exchange.Contracts;
+using NLog;
 
 namespace Bognabot.Services.Exchange
 {
     public class OrderService
     {
+        private readonly ILogger _logger;
         private readonly IEnumerable<IExchangeService> _exchangeServices;
         private readonly Dictionary<string, Dictionary<Instrument, PositionDto>> _exchangePositions;
         private readonly Dictionary<string, IStreamSubscription> _exchangePositionSubscriptions;
         private readonly Dictionary<string, List<Func<PositionDto, Task>>> _positionCallbacks; 
 
-        public OrderService(IEnumerable<IExchangeService> exchangeServices)
+        public OrderService(ILogger logger, IEnumerable<IExchangeService> exchangeServices)
         {
+            _logger = logger;
             _exchangeServices = exchangeServices;
 
             _exchangePositions = new Dictionary<string, Dictionary<Instrument, PositionDto>>();
@@ -37,18 +42,50 @@ namespace Bognabot.Services.Exchange
             foreach (var exchangeService in _exchangeServices)
             {
                 var sub = new StreamSubscription<PositionDto>(OnPositionUpdate);
+
                 _exchangePositionSubscriptions.Add(exchangeService.ExchangeConfig.ExchangeName, sub);
 
                 await exchangeService.SubscribeToStreamAsync<PositionDto>(ExchangeChannel.Position, sub);
             }
         }
 
-        public void StreamPositionAsync(string positionKey, Func<PositionDto, Task> callback)
+        public async Task<OrderDto> PlaceOrderAsync(OrderModel orderModel)
+        {
+            var exchange = _exchangeServices.FirstOrDefault(x => x.ExchangeConfig.ExchangeName == orderModel.Exchange);
+
+            if (exchange == null)
+            { 
+                _logger.Log(LogLevel.Error, $"Order cannot be placed as {orderModel.Exchange} exchange cannot be found");
+                return null;
+            }
+
+            var order = await exchange.PlaceOrderAsync(orderModel.Instrument, orderModel.Price, orderModel.Amount, orderModel.Side, orderModel.OrderType);
+
+            if (orderModel.OrderType == OrderType.Market)
+            {
+                if (orderModel.OrderProfitAmount > 0)
+                    await exchange.PlaceOrderAsync(orderModel.Instrument, orderModel.Price, orderModel.OrderProfitAmount,
+                        orderModel.Side == TradeSide.Buy ? TradeSide.Buy : TradeSide.Sell, OrderType.Limit);
+
+                if (orderModel.OrderStopAmount > 0)
+                    await exchange.PlaceOrderAsync(orderModel.Instrument, orderModel.Price, orderModel.OrderStopAmount,
+                        orderModel.Side == TradeSide.Buy ? TradeSide.Buy : TradeSide.Sell, OrderType.Stop);
+            }
+
+            return order;
+        }
+
+        public void StreamPosition(string positionKey, Func<PositionDto, Task> callback)
         {
             if (!_positionCallbacks.ContainsKey(positionKey))
                 _positionCallbacks[positionKey] = new List<Func<PositionDto, Task>>();
 
             _positionCallbacks[positionKey].Add(callback);
+        }
+
+        public List<PositionDto> GetAllPositions()
+        {
+            return _exchangePositions.Values.SelectMany(x => x.Values).ToList();
         }
 
         private async Task OnPositionUpdate(PositionDto[] positions)

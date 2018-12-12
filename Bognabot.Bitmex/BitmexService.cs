@@ -68,8 +68,6 @@ namespace Bognabot.Bitmex
         public async Task StartAsync()
         {
             await _exchangeApi.StartAsync();
-
-            var o = await PlaceOrder(Instrument.BTCUSD, 6660, -100, OrderType.Limit);
         }
 
         public Task SubscribeToStreamAsync<T>(ExchangeChannel channel, IStreamSubscription subscription, Instrument? instrument = null) where T : ExchangeDto
@@ -106,7 +104,7 @@ namespace Bognabot.Bitmex
             return response.ToList();
         }
 
-        public async Task<OrderDto> PlaceOrder(Instrument instrument, double price, double quantity, OrderType orderType)
+        public async Task<OrderDto> PlaceOrderAsync(Instrument instrument, double price, double quantity, TradeSide side, OrderType orderType)
         {
             if (!ExchangeConfig.SupportedInstruments.ContainsKey(instrument))
             {
@@ -122,16 +120,39 @@ namespace Bognabot.Bitmex
                 return null;
             }
 
-            var request = new PlaceOrderRequest
+            IRequest request = null;
+            var ot = ExchangeConfig.SupportedOrderTypes[orderType];
+
+            switch (orderType)
             {
-                Symbol = _exchangeApi.ToSymbol(instrument),
-                OrderQty = quantity,
-                Price = price,
-                OrderType = ExchangeConfig.SupportedOrderTypes[orderType]
-            };
+                case OrderType.Market:
+                    request = new PlaceMarketOrderRequest
+                    {
+                        Symbol = _exchangeApi.ToSymbol(instrument),
+                        OrderQty = quantity,
+                        Side = side.ToString(),
+                        OrderType = ot
+                    };
+                    break;
+                case OrderType.Limit:
+                    request = new PlaceLimitOrderRequest
+                    {
+                        Symbol = _exchangeApi.ToSymbol(instrument),
+                        OrderQty = quantity,
+                        Side = side.ToString(),
+                        Price = price,
+                        OrderType = ot
+                    };
+                    break;
+                case OrderType.LimitMarket:
+                    break;
+                case OrderType.Stop:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(orderType), orderType, null);
+            }
 
             var channelPath = ExchangeConfig.SupportedRestChannels[ExchangeChannel.Order];
-            var jsonRequest = JsonConvert.SerializeObject(request);
 
             return await _exchangeApi.PostAsync<OrderDto, OrderResponse>(channelPath, request);
         }

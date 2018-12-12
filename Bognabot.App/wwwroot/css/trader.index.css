@@ -1,0 +1,17 @@
+#positions {
+  margin-bottom: 30px; }
+  #positions .card ul {
+    list-style: none;
+    margin: 0;
+    padding: 0; }
+
+#order .order-form .checkbox {
+  display: inline-block;
+  position: relative;
+  top: 2px;
+  width: auto;
+  height: auto; }
+
+#order .order-form .right-radio {
+  float: right; }
+

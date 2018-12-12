@@ -7,6 +7,6 @@ namespace Bognabot.App.ViewModels
 {
     public class TraderIndexViewModel
     {
-
+        public string[] ExchangeNames { get; set; }
     }
 }

@@ -24,13 +24,31 @@ namespace Bognabot.Bitmex.Request
         public double StartAt { get; set; }
     }
 
-    public class PlaceOrderRequest : IRequest
+    public class PlaceMarketOrderRequest : IRequest
     {
         [JsonProperty("symbol")]
         public string Symbol { get; set; }
 
         [JsonProperty("orderQty")]
         public double OrderQty { get; set; }
+
+        [JsonProperty("side")]
+        public string Side { get; set; }
+
+        [JsonProperty("ordType")]
+        public string OrderType { get; set; }
+    }
+
+    public class PlaceLimitOrderRequest : IRequest
+    {
+        [JsonProperty("symbol")]
+        public string Symbol { get; set; }
+
+        [JsonProperty("orderQty")]
+        public double OrderQty { get; set; }
+
+        [JsonProperty("side")]
+        public string Side { get; set; }
 
         [JsonProperty("price")]
         public double Price { get; set; }

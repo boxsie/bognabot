@@ -1,4 +1,7 @@
-﻿@using Bognabot.Data.Exchange.Enums
+﻿@using System.ComponentModel
+@using System.ComponentModel.DataAnnotations
+@using Bognabot.Core
+@using Bognabot.Data.Exchange.Enums
 @model Bognabot.App.ViewModels.TraderIndexViewModel
 
 @{
@@ -6,17 +9,159 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+@section Head
+{
+    <link rel="stylesheet" href="css/trader.index.css"/>
+}
+
 <div id="trader" class="container-fluid">
-    <div class="card" v-for="position in exchangePositions">
-        <div class="card-header">
-            {{position.exchangeName}} - {{parseInstrument(position.instrument)}}
+    <div id="positions">
+        <h2>Positions</h2>
+        <div class="row">
+            <div class="col-sm-6 col-md-4 col-lg-3" v-for="position in exchangePositions">
+                <div class="card">
+                    <div class="card-header">
+                        {{position.exchangeName}} - {{parseInstrument(position.instrument)}}
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Quantity: <strong>{{position.quantity}}</strong></li>
+                            <li>Entry: <strong>{{position.entryPrice}}</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <ul>
-                <li>Quantity: <strong>{{position.quantity}}</strong></li>
-                <li>Entry: <strong>{{position.entryPrice}}</strong></li>
-            </ul>
-        </div>
+    </div>
+    
+    <div id="order">
+        <h2>Trade</h2>
+        <form class="order-form">
+            <div class="row">
+                <div class="col-sm-6 form-group">
+                    <label>Exchange:</label>
+                    <select class="form-control" v-model="orderModel.exchange">
+                        <option v-for="exchange in exchanges" v-bind:value="exchange">
+                            {{ exchange }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-sm-6 form-group">
+                    <label>Order type:</label>
+                    <select class="form-control" v-model="orderModel.orderType">
+                        <option v-for="orderType in orderTypes" v-bind:value="orderType.value">
+                            {{ orderType.text }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+           
+            <div class="row">
+                <div class="col-sm-6 form-group">
+                    <label>Amount:</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" v-model="orderModel.amount" />
+                        <div class="input-group-append">
+                            <span class="input-group-text">USD</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row" v-if="orderModel.orderType === @((int)OrderType.Limit) || orderModel.orderType === @((int)OrderType.Stop)">
+                <div class="col-sm-6 form-group">
+                    <label>Price:</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" v-model="orderModel.orderPrice" />
+                        <div class="input-group-append">
+                            <span class="input-group-text">USD</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row" v-if="orderModel.orderType === @((int)OrderType.LimitMarket)">
+                <div class="col-sm-6 form-group">
+                    <div class="right-radio">
+                        <input type="radio" id="orderLimitSlipPercent" value="%" v-model="orderModel.orderLimitSlipType">
+                        <label for="orderLimitSlipPercent">%</label>
+
+                        <input type="radio" id="orderLimitSlipDollar" value="USD" v-model="orderModel.orderLimitSlipType">
+                        <label for="orderLimitSlipDollar">$</label>
+                    </div>
+
+                    <label>Maximum Slip:</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" v-model="orderModel.orderLimitSlipAmount" />
+                        <div class="input-group-append">
+                            <span class="input-group-text">{{ orderModel.orderLimitSlipType }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6 form-group">
+                    <input type="checkbox" id="showTradeAddStop" class="form-control checkbox" v-model="showTradeAddStop" />
+                    <label for="showTradeAddStop">Stop loss</label>
+
+                    <div v-if="showTradeAddStop">
+                        <div class="right-radio">
+                            <input type="radio" id="orderAddStopPercent" value="%" v-model="orderModel.orderStopAmountType">
+                            <label for="orderAddStopPercent">%</label>
+
+                            <input type="radio" id="orderAddStopDollar" value="USD" v-model="orderModel.orderStopAmountType">
+                            <label for="orderAddStopDollar">$</label>
+                        </div>
+
+                        <label>Stop:</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" v-model="orderModel.orderStopAmount" />
+                            <div class="input-group-append">
+                                <span class="input-group-text">{{ orderModel.orderStopAmountType }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6 form-group">
+                    <input type="checkbox" id="showTradeAddProfit" class="form-control checkbox" v-model="showTradeAddProfit" />
+                    <label for="showTradeAddProfit">Take profit</label>
+
+                    <div v-if="showTradeAddProfit">
+                        <div class="right-radio">
+                            <input type="radio" id="orderAddProfitPercent" value="%" v-model="orderModel.orderProfitAmountType">
+                            <label for="orderAddProfitPercent">%</label>
+
+                            <input type="radio" id="orderAddProfitDollar" value="$" v-model="orderModel.orderProfitAmountType">
+                            <label for="orderAddProfitDollar">$</label>
+                        </div>
+
+                        <label>Profit:</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" v-model="orderModel.orderProfitAmount" />
+                            <div class="input-group-append">
+                                <span class="input-group-text">{{ orderModel.orderProfitAmountType }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group col-sm-3">
+                    <button class="btn btn-success" v-on:click.prevent.stop="buyOrder">BUY</button>
+                </div>
+                <div class="form-group col-sm-3">
+                    <button class="btn btn-danger" v-on:click.prevent.stop="sellOrder">SELL</button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -25,7 +170,9 @@
     <script src="js/trader.index.js"></script>
     <script language="javascript">
         var vm = new bognabot.TraderViewModel({
-            instruments: @Json.Serialize(Enum.GetNames(typeof(Instrument)))
+            instruments: @Json.Serialize(Enum.GetNames(typeof(Instrument))),
+            exchanges: @Json.Serialize(Model.ExchangeNames),
+            orderTypes: @Json.Serialize(Enum.GetValues(typeof(OrderType)).Cast<OrderType>().Select(x => new { Value = (int)x, Text = x.GetAttribute<DisplayNameAttribute>().DisplayName }))
         });
     </script>
 }

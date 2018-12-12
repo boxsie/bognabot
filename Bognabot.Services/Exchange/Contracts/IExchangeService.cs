@@ -18,5 +18,6 @@ namespace Bognabot.Services.Exchange.Contracts
         Task SubscribeToStreamAsync<T>(ExchangeChannel channel, IStreamSubscription subscription, Instrument? instrument = null) where T : ExchangeDto;
 
         Task<List<CandleDto>> GetCandlesAsync(Instrument instrument, TimePeriod timePeriod, DateTime startTime, DateTime endTime);
+        Task<OrderDto> PlaceOrderAsync(Instrument instrument, double price, double quantity, TradeSide side, OrderType orderType);
     }
 }
